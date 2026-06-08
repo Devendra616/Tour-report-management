@@ -34,16 +34,6 @@ const toTimeInput = (value) => {
   return String(value).slice(0, 5);
 };
 
-const timeToDisplay = (value) => {
-  const normalized = normalizeTime(value);
-  if (!normalized) return { time: "", period: "AM" };
-  const [hourText, minute] = normalized.split(":");
-  const hour = Number(hourText);
-  const period = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 || 12;
-  return { time: `${String(hour12).padStart(2, "0")}:${minute}`, period };
-};
-
 const normalizeTime = (value, period = "") => {
   let raw = String(value || "").trim().toUpperCase();
   if (!raw) return "";
@@ -84,19 +74,6 @@ const normalizeTime = (value, period = "") => {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
-const fileToBase64 = (file) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result).split(",")[1]);
-  reader.onerror = reject;
-  reader.readAsDataURL(file);
-});
-
-const buildFilePayload = async (file) => ({
-  name: file.name,
-  type: file.type,
-  data: await fileToBase64(file),
-});
-
 export default function EmployeeForm() {
   const [form, setForm] = useState(initialForm);
   const [employee, setEmployee] = useState(null);
@@ -135,8 +112,6 @@ export default function EmployeeForm() {
   };
 
   const fillFromReport = (report) => {
-    const startDisplay = timeToDisplay(report.start_time);
-    const endDisplay = timeToDisplay(report.end_time);
     setActiveReport(report);
     setForm({
       name: report.name || "",
@@ -146,12 +121,12 @@ export default function EmployeeForm() {
       tour_type: report.tour_type || "",
       purpose: report.purpose || "",
       start_date: toDateInput(report.start_date),
-      start_time: startDisplay.time || toTimeInput(report.start_time),
-      start_period: startDisplay.period,
+      start_time: toTimeInput(report.start_time),
+      start_period: "",
       start_place: report.start_place || "",
       end_date: toDateInput(report.end_date),
-      end_time: endDisplay.time || toTimeInput(report.end_time),
-      end_period: endDisplay.period,
+      end_time: toTimeInput(report.end_time),
+      end_period: "",
       destination: report.destination || "",
       mode_of_travel: report.mode_of_travel || "",
       weekly_off: report.weekly_off || "",
@@ -224,13 +199,13 @@ export default function EmployeeForm() {
       return false;
     }
 
-    if ((form.start_time && !normalizeTime(form.start_time, form.start_period)) || (form.end_time && !normalizeTime(form.end_time, form.end_period))) {
-      showToast("Please enter valid time, for example 10:00 AM.", "error");
+    if ((form.start_time && !normalizeTime(form.start_time)) || (form.end_time && !normalizeTime(form.end_time))) {
+      showToast("Please enter valid time.", "error");
       return false;
     }
 
-    const startTime = normalizeTime(form.start_time, form.start_period);
-    const endTime = normalizeTime(form.end_time, form.end_period);
+    const startTime = normalizeTime(form.start_time);
+    const endTime = normalizeTime(form.end_time);
 
     if (form.start_date === form.end_date && startTime && endTime && startTime >= endTime) {
       showToast("End time must be after start time for same-day tour.", "error");
@@ -256,20 +231,25 @@ export default function EmployeeForm() {
     return true;
   };
 
-  const payload = async () => ({
-    ...form,
-    start_time: normalizeTime(form.start_time, form.start_period),
-    end_time: normalizeTime(form.end_time, form.end_period),
-    approval_note: approvalNote ? await buildFilePayload(approvalNote) : null,
-    supporting_documents: await Promise.all(supportingDocs.map(buildFilePayload)),
-  });
+  const payload = () => {
+    const data = new FormData();
+    Object.entries({
+      ...form,
+      start_time: normalizeTime(form.start_time),
+      end_time: normalizeTime(form.end_time),
+    }).forEach(([key, value]) => data.append(key, value ?? ""));
+
+    if (approvalNote) data.append("approval_note", approvalNote);
+    supportingDocs.forEach((file) => data.append("supporting_documents", file));
+    return data;
+  };
 
   const saveDraft = async () => {
     if (locked) return;
 
     try {
       setLoading(true);
-      const body = await payload();
+      const body = payload();
       const url = activeReport ? `${API_BASE_URL}/api/reports/${activeReport.id}/draft` : `${API_BASE_URL}/api/reports/draft`;
       const method = activeReport ? "put" : "post";
       await axios[method](url, body, { headers: employeeAuthHeaders() });
@@ -290,7 +270,7 @@ export default function EmployeeForm() {
 
     try {
       setLoading(true);
-      const body = await payload();
+      const body = payload();
       const url = activeReport ? `${API_BASE_URL}/api/reports/${activeReport.id}/submit` : `${API_BASE_URL}/api/reports/submit`;
       const method = activeReport ? "put" : "post";
       await axios[method](url, body, { headers: employeeAuthHeaders() });
@@ -320,7 +300,7 @@ export default function EmployeeForm() {
             </p>
           </div>
           <div className="actions">
-            <button className="btn btn-danger" type="button" onClick={logout}>Logout</button>
+            <button className="btn btn-danger" type="button" onClick={logout}><span className="btn-icon" aria-hidden="true">↪</span> Logout</button>
           </div>
         </div>
 
@@ -345,23 +325,24 @@ export default function EmployeeForm() {
         )}
 
         <form onSubmit={submit}>
-          <div className="card">
+          <div className="section-title">Employee Details</div>
+          <div className="card employee-details-card">
             <div className="grid">
               <div>
                 <label>SAP ID</label>
-                <input value={employee?.sap_id || ""} disabled />
+                <input className="db-field" value={employee?.sap_id || ""} disabled />
               </div>
               <div>
                 <label>Name *</label>
-                <input value={form.name} onChange={(e) => update("name", e.target.value)} required disabled />
+                <input className="db-field" value={form.name} onChange={(e) => update("name", e.target.value)} required disabled />
               </div>
               <div>
                 <label>Designation *</label>
-                <input value={form.designation} onChange={(e) => update("designation", e.target.value)} required disabled />
+                <input className="db-field" value={form.designation} onChange={(e) => update("designation", e.target.value)} required disabled />
               </div>
               <div>
                 <label>Grade *</label>
-                <select value={form.grade} onChange={(e) => update("grade", e.target.value)} required disabled>
+                <select className="db-field" value={form.grade} onChange={(e) => update("grade", e.target.value)} required disabled>
                   <option value="">Choose</option>
                   {masters.grades.map((grade) => (
                     <option key={grade.id} value={grade.grade_name}>{grade.grade_name}</option>
@@ -370,20 +351,11 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <label>Department *</label>
-                <select value={form.department} onChange={(e) => update("department", e.target.value)} required disabled>
+                <select className="db-field" value={form.department} onChange={(e) => update("department", e.target.value)} required disabled>
                   <option value="">Choose</option>
                   {masters.departments.map((department) => (
                     <option key={department.id} value={department.department_name}>{department.department_name}</option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label>Type of Tour *</label>
-                <select value={form.tour_type} onChange={(e) => update("tour_type", e.target.value)} required disabled={locked}>
-                  <option value="">Choose</option>
-                  <option value="Official">Official</option>
-                  <option value="Medical(Self)">Medical(Self)</option>
-                  <option value="Medical (Escort Duty)">Medical (Escort Duty)</option>
                 </select>
               </div>
             </div>
@@ -391,69 +363,76 @@ export default function EmployeeForm() {
 
           <div className="section-title">Official Tour Details</div>
           <div className="card">
-            <div className="grid">
-              <div>
-                <label>Purpose of Official Tour *</label>
-                <input value={form.purpose} onChange={(e) => update("purpose", e.target.value)} required disabled={locked} />
+            <div className="form-subsection">
+              <h3>Tour Information</h3>
+              <div className="grid">
+                <div>
+                  <label>Type of Tour *</label>
+                  <select value={form.tour_type} onChange={(e) => update("tour_type", e.target.value)} required disabled={locked}>
+                    <option value="">Choose</option>
+                    <option value="Official">Official</option>
+                    <option value="Medical(Self)">Medical(Self)</option>
+                    <option value="Medical (Escort Duty)">Medical (Escort Duty)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Purpose of Official Tour *</label>
+                  <input value={form.purpose} onChange={(e) => update("purpose", e.target.value)} required disabled={locked} />
+                </div>
               </div>
-              <div>
-                <label>Destination *</label>
-                <select value={form.destination} onChange={(e) => update("destination", e.target.value)} required disabled={locked}>
-                  <option value="">Choose</option>
-                  {masters.destinations.map((destination) => (
-                    <option key={destination.id} value={destination.destination_name}>{destination.destination_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label>Start Date *</label>
-                <input type="date" value={form.start_date} onChange={(e) => update("start_date", e.target.value)} required disabled={locked} />
-              </div>
-              <div>
-                <label>Trip begins at</label>
-                <div className="time-row">
-                  <input value={form.start_time} onChange={(e) => update("start_time", e.target.value)} placeholder="10:00" inputMode="numeric" disabled={locked} />
-                  <select value={form.start_period} onChange={(e) => update("start_period", e.target.value)} disabled={locked}>
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
+            </div>
+
+            <div className="form-subsection">
+              <h3>Route and Travel</h3>
+              <div className="grid">
+                <div>
+                  <label>Trip Started From *</label>
+                  <input value={form.start_place} onChange={(e) => update("start_place", e.target.value)} required disabled={locked} />
+                </div>
+                <div>
+                  <label>Destination *</label>
+                  <input value={form.destination} onChange={(e) => update("destination", e.target.value)} required disabled={locked} placeholder="Enter destination" />
+                </div>
+                <div>
+                  <label>Mode of Travel *</label>
+                  <select value={form.mode_of_travel} onChange={(e) => update("mode_of_travel", e.target.value)} required disabled={locked}>
+                    <option value="">Choose</option>
+                    {["Flight", "Hired Vehicle + Flight", "Hired Vehicle", "Train", "Bus"].map((mode) => (
+                      <option key={mode} value={mode}>{mode}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Weekly Off On *</label>
+                  <select value={form.weekly_off} onChange={(e) => update("weekly_off", e.target.value)} required disabled={locked}>
+                    <option value="">Choose</option>
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                      <option key={day} value={day}>{day}</option>
+                    ))}
                   </select>
                 </div>
               </div>
-              <div>
-                <label>Trip Started From *</label>
-                <input value={form.start_place} onChange={(e) => update("start_place", e.target.value)} required disabled={locked} />
-              </div>
-              <div>
-                <label>End Date *</label>
-                <input type="date" value={form.end_date} onChange={(e) => update("end_date", e.target.value)} required disabled={locked} />
-              </div>
-              <div>
-                <label>Trip ends at</label>
-                <div className="time-row">
-                  <input value={form.end_time} onChange={(e) => update("end_time", e.target.value)} placeholder="11:00" inputMode="numeric" disabled={locked} />
-                  <select value={form.end_period} onChange={(e) => update("end_period", e.target.value)} disabled={locked}>
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
+            </div>
+
+            <div className="form-subsection">
+              <h3>Trip Schedule</h3>
+              <div className="grid">
+                <div>
+                  <label>Start Date *</label>
+                  <input type="date" value={form.start_date} onChange={(e) => update("start_date", e.target.value)} required disabled={locked} />
                 </div>
-              </div>
-              <div>
-                <label>Mode of Travel *</label>
-                <select value={form.mode_of_travel} onChange={(e) => update("mode_of_travel", e.target.value)} required disabled={locked}>
-                  <option value="">Choose</option>
-                  {["Flight","Hired Vehicle + Flight", "Hired Vehicle", "Train", "Bus"].map((mode) => (
-                    <option key={mode} value={mode}>{mode}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label>Weekly Off On *</label>
-                <select value={form.weekly_off} onChange={(e) => update("weekly_off", e.target.value)} required disabled={locked}>
-                  <option value="">Choose</option>
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </select>
+                <div>
+                  <label>Trip begins at</label>
+                  <input type="time" value={form.start_time} onChange={(e) => update("start_time", e.target.value)} required disabled={locked} />
+                </div>
+                <div>
+                  <label>End Date *</label>
+                  <input type="date" value={form.end_date} onChange={(e) => update("end_date", e.target.value)} required disabled={locked} />
+                </div>
+                <div>
+                  <label>Trip ends at</label>
+                  <input type="time" value={form.end_time} onChange={(e) => update("end_time", e.target.value)} required disabled={locked} />
+                </div>
               </div>
             </div>
           </div>
@@ -475,8 +454,8 @@ export default function EmployeeForm() {
                 <input type="file" accept=".pdf,image/png,image/jpeg" onChange={(e) => setApprovalNote(e.target.files?.[0] || null)} disabled={locked} />
               </div>
               <div>
-                <label>Supporting Documents PDF/JPG/PNG, max 5</label>
-                <input type="file" accept=".pdf,image/png,image/jpeg" multiple onChange={(e) => setSupportingDocs(Array.from(e.target.files || []).slice(0, 5))} disabled={locked} />
+                <label>Supporting Documents PDF/JPG/PNG, max 3</label>
+                <input type="file" accept=".pdf,image/png,image/jpeg" multiple onChange={(e) => setSupportingDocs(Array.from(e.target.files || []).slice(0, 3))} disabled={locked} />
               </div>
             </div>
           </div>
@@ -508,3 +487,12 @@ export default function EmployeeForm() {
     </main>
   );
 }
+
+
+
+
+
+
+
+
+

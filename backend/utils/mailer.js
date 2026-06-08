@@ -8,7 +8,31 @@ const hasSmtpConfig = () =>
   !String(process.env.SMTP_USER).includes("your_email") &&
   !String(process.env.SMTP_PASS).includes("your_app_password");
 
-const sendMail = async ({ to, subject, text }) => {
+const formatSender = () => {
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  if (!from) return undefined;
+  return from.includes("<") ? from : `"Tour Report Management" <${from}>`;
+};
+
+const emailShell = ({ title, preview, children }) => `
+  <div style="margin:0;padding:24px;background:#eef2ff;font-family:Arial,'Segoe UI',sans-serif;color:#172033;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+      <div style="background:#5b4ce6;color:#ffffff;padding:18px 22px;">
+        <div style="font-size:13px;letter-spacing:.4px;text-transform:uppercase;font-weight:700;">Tour Report Management</div>
+        <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;">${title}</h1>
+      </div>
+      <div style="padding:22px;">
+        <p style="margin:0 0 16px;color:#4b5563;font-size:14px;line-height:1.6;">${preview}</p>
+        ${children}
+      </div>
+      <div style="padding:14px 22px;background:#f8fafc;color:#64748b;font-size:12px;line-height:1.5;">
+        This is an automated email from Tour Report Management. Please do not reply to this message.
+      </div>
+    </div>
+  </div>
+`;
+
+const sendMail = async ({ to, subject, text, html }) => {
   if (!hasSmtpConfig()) {
     console.log("[email skipped]", { to, subject, text });
     return false;
@@ -25,13 +49,14 @@ const sendMail = async ({ to, subject, text }) => {
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: formatSender(),
     to,
     subject,
     text,
+    html,
   });
 
   return true;
 };
 
-module.exports = { sendMail };
+module.exports = { emailShell, sendMail };

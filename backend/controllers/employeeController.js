@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
-const { sendMail } = require("../utils/mailer");
+const { emailShell, sendMail } = require("../utils/mailer");
 
 const isEightDigitSap = (value) => /^\d{8}$/.test(String(value || ""));
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
@@ -46,6 +46,17 @@ exports.requestOtp = (req, res) => {
               to: employee.email,
               subject: "Tour Report OTP",
               text: `Your OTP for Tour Report Management is ${otp}. It is valid for ${otpExpiryMinutes} minutes.`,
+              html: emailShell({
+                title: "Your Login OTP",
+                preview: `Hello ${employee.name}, use this OTP to continue your tour report.`,
+                children: `
+                  <div style="margin:18px 0;padding:18px;background:#eef2ff;border-radius:8px;text-align:center;">
+                    <div style="font-size:12px;color:#4338ca;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">One Time Password</div>
+                    <div style="font-size:32px;font-weight:800;letter-spacing:6px;color:#172033;margin-top:8px;">${otp}</div>
+                  </div>
+                  <p style="margin:0;color:#4b5563;font-size:14px;line-height:1.6;">This OTP is valid for ${otpExpiryMinutes} minutes.</p>
+                `,
+              }),
             });
             if (!sent) {
               return res.status(500).json({ message: "Email is not configured. Please set SMTP details." });
@@ -116,3 +127,4 @@ exports.verifyOtp = (req, res) => {
     }
   );
 };
+

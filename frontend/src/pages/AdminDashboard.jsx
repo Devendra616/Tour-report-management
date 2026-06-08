@@ -5,6 +5,7 @@ import { API_BASE_URL, authHeaders } from "../api";
 import Toast from "../components/Toast";
 
 const currentYear = new Date().getFullYear();
+const PAGE_SIZE = 10;
 
 const fileUrl = (path, mode = "preview") => {
   const token = encodeURIComponent(localStorage.getItem("tour_admin_token") || "");
@@ -20,6 +21,58 @@ const formatDate = (value) => {
   });
 };
 
+const excelValue = (value) => String(value ?? "-")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;");
+
+const excelDate = (value) => (value ? formatDate(value) : "-");
+
+const reportToExcelRow = (report) => [
+  excelDate(report.created_at),
+  report.sap_id,
+  report.name,
+  report.designation,
+  report.grade,
+  report.department,
+  report.tour_type,
+  report.purpose,
+  excelDate(report.start_date),
+  report.start_time || "-",
+  report.start_place,
+  excelDate(report.end_date),
+  report.end_time || "-",
+  report.destination,
+  report.mode_of_travel,
+  report.weekly_off,
+  report.approving_authority,
+  report.status,
+  report.rejection_reason || "-",
+];
+
+const excelHeaders = [
+  "Submitted Date",
+  "SAP ID",
+  "Employee Name",
+  "Designation",
+  "Grade",
+  "Department",
+  "Type of Tour",
+  "Purpose",
+  "Start Date",
+  "Start Time",
+  "Started From",
+  "End Date",
+  "End Time",
+  "Destination",
+  "Mode of Travel",
+  "Weekly Off",
+  "Approving Authority",
+  "Status",
+  "Rejection Reason",
+];
+
 const fileLink = (filePath, label) => (
   <span style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", marginBottom: 5 }}>
     <span>{label}</span>
@@ -30,7 +83,7 @@ const fileLink = (filePath, label) => (
 
 const reportFiles = (report) => {
   if (report.combined_pdf_path) {
-    return fileLink(report.combined_pdf_path, "Combined report");
+    return fileLink(report.combined_pdf_path, "Report");
   }
 
   return (
@@ -56,8 +109,13 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [toast, setToast] = useState({ message: "", type: "success" });
   const navigate = useNavigate();
+
+  const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE));
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const visibleReports = reports.slice(pageStart, pageStart + PAGE_SIZE);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -77,6 +135,7 @@ export default function AdminDashboard() {
         },
       });
       setReports(res.data);
+      setCurrentPage(1);
     } catch (err) {
       if (err.response?.status === 401) {
         localStorage.removeItem("tour_admin_token");
@@ -130,6 +189,37 @@ export default function AdminDashboard() {
     navigate("/admin");
   };
 
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
+  };
+  const downloadExcel = () => {
+    if (reports.length === 0) {
+      showToast("No filtered reports available to download.", "error");
+      return;
+    }
+
+    const rows = [excelHeaders, ...reports.map(reportToExcelRow)];
+    const tableRows = rows.map((row) => (
+      `<tr>${row.map((cell) => `<td>${excelValue(cell)}</td>`).join("")}</tr>`
+    )).join("");
+    const workbook = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="UTF-8"></head>
+        <body><table>${tableRows}</table></body>
+      </html>
+    `;
+    const blob = new Blob([workbook], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tour-reports-${new Date().toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast("Filtered reports downloaded.");
+  };
+
   return (
     <main className="page">
       <Toast toast={toast} onClose={() => setToast({ message: "", type: toast.type })} />
@@ -143,7 +233,7 @@ export default function AdminDashboard() {
             <p style={{ margin: "5px 0 0", color: "#64748b" }}>Review tour program reports</p>
           </div>
           <div className="actions">
-            <button className="btn btn-danger" onClick={logout} type="button">Logout</button>
+            <button className="btn btn-danger" onClick={logout} type="button"><span className="btn-icon" aria-hidden="true">↪</span> Logout</button>
           </div>
         </div>
 
@@ -173,7 +263,8 @@ export default function AdminDashboard() {
           </div>
           <div className="actions">
             <button className="btn btn-muted" type="button" onClick={() => setFilters({ year: "", status: "all", fromDate: "", toDate: "" })}>Clear</button>
-            <button className="btn btn-primary" type="button" onClick={loadReports}>Apply Filters</button>
+            <button className="btn btn-muted" type="button" onClick={downloadExcel} disabled={loading || reports.length === 0}>Download Excel</button>
+            <button className="btn btn-primary" type="button" onClick={loadReports}>Apply</button>
           </div>
         </div>
 
@@ -196,7 +287,7 @@ export default function AdminDashboard() {
                 <tr><td colSpan="8">Loading...</td></tr>
               ) : reports.length === 0 ? (
                 <tr><td colSpan="8">No reports found.</td></tr>
-              ) : reports.map((report) => (
+              ) : visibleReports.map((report) => (
                 <tr key={report.id}>
                   <td>{formatDate(report.created_at)}</td>
                   <td>
@@ -233,6 +324,23 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+
+        {!loading && reports.length > 0 && (
+          <div className="pagination-bar">
+            <span>
+              Showing {pageStart + 1}-{Math.min(pageStart + PAGE_SIZE, reports.length)} of {reports.length}
+            </span>
+            <div className="pagination-actions">
+              <button className="btn btn-muted" type="button" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
+                Previous
+              </button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button className="btn btn-muted" type="button" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {rejectTarget && (
@@ -257,3 +365,8 @@ export default function AdminDashboard() {
     </main>
   );
 }
+
+
+
+
+

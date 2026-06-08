@@ -80,6 +80,10 @@ export default function EmployeeLogin() {
             <h1>Employee Verification</h1>
           </div>
           <p>Enter registered SAP ID and email to continue your tour report.</p>
+          <div className="login-switch" aria-label="Login type">
+            <button className="active" type="button"><span className="ui-icon" aria-hidden="true">E</span> Employee</button>
+            <button type="button" onClick={() => navigate("/admin")}><span className="ui-icon" aria-hidden="true">A</span> Admin</button>
+          </div>
         </div>
 
         <form className="card" onSubmit={otpSent ? verifyOtp : requestOtp}>
@@ -101,7 +105,6 @@ export default function EmployeeLogin() {
           </div>
 
           <div className="actions" style={{ marginTop: 16 }}>
-            <a className="btn btn-muted" href="/admin">Admin Login</a>
             <button className="btn btn-primary" disabled={loading} type="submit">
               {loading ? "Please wait..." : otpSent ? "Verify OTP" : "Send OTP"}
             </button>
@@ -111,3 +114,6 @@ export default function EmployeeLogin() {
     </main>
   );
 }
+
+
+

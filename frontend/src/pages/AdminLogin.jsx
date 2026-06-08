@@ -51,6 +51,10 @@ export default function AdminLogin() {
             <h1>Admin Login</h1>
           </div>
           <p>Review and approve submitted tour program reports.</p>
+          <div className="login-switch" aria-label="Login type">
+            <button type="button" onClick={() => navigate("/")}><span className="ui-icon" aria-hidden="true">E</span> Employee</button>
+            <button className="active" type="button"><span className="ui-icon" aria-hidden="true">A</span> Admin</button>
+          </div>
         </div>
 
         <form className="card" onSubmit={submit}>
@@ -70,7 +74,6 @@ export default function AdminLogin() {
             </div>
           </div>
           <div className="actions" style={{ marginTop: 18 }}>
-            <a className="btn btn-muted" href="/">Employee Form</a>
             <button className="btn btn-primary" disabled={loading} type="submit">
               {loading ? "Signing in..." : "Sign In"}
             </button>
@@ -80,3 +83,6 @@ export default function AdminLogin() {
     </main>
   );
 }
+
+
+
