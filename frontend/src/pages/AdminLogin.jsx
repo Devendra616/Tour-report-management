@@ -1,0 +1,82 @@
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../api";
+import Toast from "../components/Toast";
+
+export default function AdminLogin() {
+  const [sapId, setSapId] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "success" });
+  const navigate = useNavigate();
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    window.setTimeout(() => setToast({ message: "", type }), 3000);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+
+    if (sapId.length !== 8) {
+      showToast("SAP ID must be exactly 8 digits.", "error");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.post(`${API_BASE_URL}/api/admin/login`, {
+        sap_id: sapId,
+        password,
+      });
+
+      localStorage.setItem("tour_admin_token", res.data.token);
+      localStorage.setItem("tour_admin", JSON.stringify(res.data.admin));
+      navigate("/admin/dashboard");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Login failed.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="page">
+      <Toast toast={toast} onClose={() => setToast({ message: "", type: toast.type })} />
+      <div className="form-shell">
+        <div className="header">
+          <div className="brand-heading">
+            <img className="brand-logo" src="/logo.svg" alt="Tour Report Management" />
+            <h1>Admin Login</h1>
+          </div>
+          <p>Review and approve submitted tour program reports.</p>
+        </div>
+
+        <form className="card" onSubmit={submit}>
+          <div className="grid">
+            <div>
+              <label>Admin SAP ID *</label>
+              <input
+                value={sapId}
+                onChange={(e) => setSapId(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="8-digit SAP ID"
+                required
+              />
+            </div>
+            <div>
+              <label>Password *</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+          </div>
+          <div className="actions" style={{ marginTop: 18 }}>
+            <a className="btn btn-muted" href="/">Employee Form</a>
+            <button className="btn btn-primary" disabled={loading} type="submit">
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  );
+}

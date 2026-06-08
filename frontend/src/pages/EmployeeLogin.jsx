@@ -1,0 +1,113 @@
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../api";
+import Toast from "../components/Toast";
+
+export default function EmployeeLogin() {
+  const [form, setForm] = useState({ sap_id: "", email: "", otp: "" });
+  const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "success" });
+  const navigate = useNavigate();
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    window.setTimeout(() => setToast({ message: "", type }), 3500);
+  };
+
+  const update = (field, value) => {
+    if (field === "sap_id") {
+      setForm({ ...form, [field]: value.replace(/\D/g, "").slice(0, 8) });
+      return;
+    }
+    if (field === "otp") {
+      setForm({ ...form, [field]: value.replace(/\D/g, "").slice(0, 6) });
+      return;
+    }
+    setForm({ ...form, [field]: value });
+  };
+
+  const requestOtp = async (e) => {
+    e.preventDefault();
+    if (form.sap_id.length !== 8) {
+      showToast("SAP ID must be exactly 8 digits.", "error");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.post(`${API_BASE_URL}/api/employee/request-otp`, {
+        sap_id: form.sap_id,
+        email: form.email,
+      });
+      setOtpSent(true);
+      showToast("OTP sent to registered email.");
+    } catch (err) {
+      showToast(err.response?.data?.message || "OTP could not be sent.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async (e) => {
+    e.preventDefault();
+    if (form.otp.length !== 6) {
+      showToast("OTP must be exactly 6 digits.", "error");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.post(`${API_BASE_URL}/api/employee/verify-otp`, form);
+      localStorage.setItem("tour_employee_token", res.data.token);
+      localStorage.setItem("tour_employee", JSON.stringify(res.data.employee));
+      navigate("/form");
+    } catch (err) {
+      showToast(err.response?.data?.message || "OTP verification failed.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="page">
+      <Toast toast={toast} onClose={() => setToast({ message: "", type: toast.type })} />
+      <div className="form-shell">
+        <div className="header">
+          <div className="brand-heading">
+            <img className="brand-logo" src="/logo.svg" alt="Tour Report Management" />
+            <h1>Employee Verification</h1>
+          </div>
+          <p>Enter registered SAP ID and email to continue your tour report.</p>
+        </div>
+
+        <form className="card" onSubmit={otpSent ? verifyOtp : requestOtp}>
+          <div className="grid">
+            <div>
+              <label>SAP ID *</label>
+              <input value={form.sap_id} onChange={(e) => update("sap_id", e.target.value)} required placeholder="8-digit SAP ID" />
+            </div>
+            <div>
+              <label>Email *</label>
+              <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required placeholder="registered email" />
+            </div>
+            {otpSent && (
+              <div>
+                <label>OTP *</label>
+                <input value={form.otp} onChange={(e) => update("otp", e.target.value)} required placeholder="6-digit OTP" />
+              </div>
+            )}
+          </div>
+
+          <div className="actions" style={{ marginTop: 16 }}>
+            <a className="btn btn-muted" href="/admin">Admin Login</a>
+            <button className="btn btn-primary" disabled={loading} type="submit">
+              {loading ? "Please wait..." : otpSent ? "Verify OTP" : "Send OTP"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  );
+}
