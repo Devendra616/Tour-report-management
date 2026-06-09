@@ -10,15 +10,17 @@ const {
 } = require("../utils/reportFiles");
 const { normalizeTime, validateSubmittedReport } = require("../utils/reportValidation");
 
-const finishReportSave = (reportId, res, message = "Report saved successfully.") => {
-  generateCombinedReportPdf(reportId, (err) => {
-    if (err) {
-      console.error("Combined PDF failed:", err.message);
-      return res.status(500).json({ message: "Report saved, but combined PDF could not be created." });
-    }
+const queueCombinedReportPdf = (reportId) => {
+  setTimeout(() => {
+    generateCombinedReportPdf(reportId, (err) => {
+      if (err) console.error("Combined PDF failed:", err.message);
+    });
+  }, 0);
+};
 
-    res.json({ message, id: reportId });
-  });
+const finishReportSave = (reportId, res, message = "Report saved successfully.") => {
+  res.json({ message, id: reportId, combined_pdf_status: "processing" });
+  queueCombinedReportPdf(reportId);
 };
 
 const reportValues = (body, employee, approvalFile, status) => [
@@ -96,6 +98,7 @@ const saveExistingReport = ({ req, res, status, employee, existingReport, approv
          start_date = ?, start_time = ?, start_place = ?, end_date = ?, end_time = ?,
          destination = ?, mode_of_travel = ?, weekly_off = ?, approving_authority = ?,
          approval_note_path = ?, approval_note_name = ?, status = ?,
+         combined_pdf_path = NULL, combined_pdf_name = NULL,
          submitted_at = ${status === "Pending" ? "NOW()" : "submitted_at"},
          rejection_reason = ${status === "Pending" ? "NULL" : "rejection_reason"}
      WHERE id = ? AND employee_id = ?`,
