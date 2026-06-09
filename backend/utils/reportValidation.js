@@ -33,25 +33,26 @@ const normalizeTime = (value, period = "") => {
 };
 
 const validateSubmittedReport = (body, hasApprovalNote) => {
-  const required = [
-    body.name,
-    body.designation,
-    body.grade,
-    body.department,
-    body.tour_type,
-    body.purpose,
-    body.start_date,
-    body.start_time,
-    body.start_place,
-    body.end_date,
-    body.end_time,
-    body.destination,
-    body.mode_of_travel,
-    body.weekly_off,
-    body.approving_authority,
+  const requiredFields = [
+    ["Name", body.name],
+    ["Designation", body.designation],
+    ["Grade", body.grade],
+    ["Department", body.department],
+    ["Type of tour", body.tour_type],
+    ["Purpose", body.purpose],
+    ["Start date", body.start_date],
+    ["Start time", body.start_time],
+    ["Started from", body.start_place],
+    ["End date", body.end_date],
+    ["End time", body.end_time],
+    ["Destination", body.destination],
+    ["Mode of travel", body.mode_of_travel],
+    ["Weekly off", body.weekly_off],
+    ["Approving authority", body.approving_authority],
   ];
 
-  if (required.some((value) => !String(value || "").trim())) return "Please fill all required fields.";
+  const missing = requiredFields.find(([, value]) => !String(value || "").trim());
+  if (missing) return `${missing[0]} is required.`;
   if (!hasApprovalNote) return "Approval note is required.";
   if (new Date(body.start_date) > new Date(body.end_date)) return "End date cannot be before start date.";
 
@@ -71,3 +72,4 @@ const validateSubmittedReport = (body, hasApprovalNote) => {
 };
 
 module.exports = { normalizeTime, validateSubmittedReport };
+

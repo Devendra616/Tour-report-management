@@ -233,8 +233,11 @@ export default function EmployeeForm() {
 
   const payload = () => {
     const data = new FormData();
+    const formFields = { ...form };
+    delete formFields.start_period;
+    delete formFields.end_period;
     Object.entries({
-      ...form,
+      ...formFields,
       start_time: normalizeTime(form.start_time),
       end_time: normalizeTime(form.end_time),
     }).forEach(([key, value]) => data.append(key, value ?? ""));
@@ -487,6 +490,9 @@ export default function EmployeeForm() {
     </main>
   );
 }
+
+
+
 
 
 

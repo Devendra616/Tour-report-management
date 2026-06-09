@@ -70,7 +70,7 @@ export default function AdminLogin() {
             </div>
             <div>
               <label>Password *</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
             </div>
           </div>
           <div className="actions" style={{ marginTop: 18 }}>
@@ -83,6 +83,7 @@ export default function AdminLogin() {
     </main>
   );
 }
+
 
 
 

@@ -90,16 +90,16 @@ export default function EmployeeLogin() {
           <div className="grid">
             <div>
               <label>SAP ID *</label>
-              <input value={form.sap_id} onChange={(e) => update("sap_id", e.target.value)} required placeholder="8-digit SAP ID" />
+              <input value={form.sap_id} onChange={(e) => update("sap_id", e.target.value)} autoComplete="username" required placeholder="8-digit SAP ID" />
             </div>
             <div>
               <label>Email *</label>
-              <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required placeholder="registered email" />
+              <input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} autoComplete="email" required placeholder="registered email" />
             </div>
             {otpSent && (
               <div>
                 <label>OTP *</label>
-                <input value={form.otp} onChange={(e) => update("otp", e.target.value)} required placeholder="6-digit OTP" />
+                <input value={form.otp} onChange={(e) => update("otp", e.target.value)} autoComplete="one-time-code" required placeholder="6-digit OTP" />
               </div>
             )}
           </div>
@@ -114,6 +114,7 @@ export default function EmployeeLogin() {
     </main>
   );
 }
+
 
 
 

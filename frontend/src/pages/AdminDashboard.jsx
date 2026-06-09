@@ -8,6 +8,8 @@ const currentYear = new Date().getFullYear();
 const PAGE_SIZE = 10;
 
 const fileUrl = (path, mode = "preview") => {
+  if (/^https?:\/\//i.test(path || "")) return path;
+
   const token = encodeURIComponent(localStorage.getItem("tour_admin_token") || "");
   return `${API_BASE_URL}/api/reports/file?mode=${mode}&path=${encodeURIComponent(path)}&token=${token}`;
 };
@@ -82,20 +84,9 @@ const fileLink = (filePath, label) => (
 );
 
 const reportFiles = (report) => {
-  if (report.combined_pdf_path) {
-    return fileLink(report.combined_pdf_path, "Report");
-  }
-
-  return (
-    <>
-      {report.approval_note_path && fileLink(report.approval_note_path, "Approval note")}<br />
-      {report.supporting_documents.map((doc) => (
-        <span key={doc.id}>
-          {fileLink(doc.file_path, doc.file_name)}<br />
-        </span>
-      ))}
-    </>
-  );
+  const primaryFile = report.combined_pdf_path || report.approval_note_path || report.supporting_documents[0]?.file_path;
+  if (!primaryFile) return "-";
+  return fileLink(primaryFile, "Report");
 };
 
 export default function AdminDashboard() {
@@ -365,6 +356,9 @@ export default function AdminDashboard() {
     </main>
   );
 }
+
+
+
 
 
 
