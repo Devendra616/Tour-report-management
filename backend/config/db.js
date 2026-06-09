@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const db = mysql.createPool({
+const dbConfig = {
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
@@ -12,7 +12,17 @@ const db = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+};
+
+console.log("DB config", {
+  host: dbConfig.host,
+  port: dbConfig.port,
+  user: dbConfig.user,
+  database: dbConfig.database,
 });
+
+const db = mysql.createPool(dbConfig);
+
 
 db.query("SELECT 1", (err) => {
   if (err) {
@@ -23,3 +33,4 @@ db.query("SELECT 1", (err) => {
 });
 
 module.exports = db;
+
