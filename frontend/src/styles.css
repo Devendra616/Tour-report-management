@@ -460,16 +460,16 @@ th {
 }
 
 .employee-details-card {
-  border-color: #bbf7d0;
-  background: #f7fee7;
+  border-color: #ddd6fe;
+  background: #fbfaff;
 }
 
 input.db-field:disabled,
 select.db-field:disabled {
-  background: #ecfdf5;
-  border-color: #86efac;
-  color: #14532d;
-  -webkit-text-fill-color: #14532d;
+  background: #f8fafc;
+  border-color: #c4b5fd;
+  color: #1e293b;
+  -webkit-text-fill-color: #1e293b;
   cursor: not-allowed;
   opacity: 1;
   font-weight: 700;
@@ -481,5 +481,6 @@ select.db-field:disabled {
   font-size: 14px;
   line-height: 1.5;
 }
+
 
 
