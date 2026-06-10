@@ -547,12 +547,10 @@ export default function EmployeeForm() {
                       <option value="No">No</option>
                     </select>
                   </div>
-                  {form.leave_availed === "Yes" && (
-                    <div>
-                      <label>If any leaves availed in between write the start date (dd.mm.yyyy) and end date (dd.mm.yyyy)</label>
-                      <input value={form.leave_details} onChange={(e) => update("leave_details", e.target.value)} disabled={locked} placeholder="Example: 10.06.2026 to 12.06.2026" />
-                    </div>
-                  )}
+                  <div>
+                    <label>If any leaves availed in between write the start date (dd.mm.yyyy) and end date (dd.mm.yyyy)</label>
+                    <input value={form.leave_details} onChange={(e) => update("leave_details", e.target.value)} disabled={locked} placeholder="Example: 10.06.2026 to 12.06.2026" />
+                  </div>
                 </div>
               </div>
             )}
@@ -570,7 +568,7 @@ export default function EmployeeForm() {
                     <label>Relation with the patient *</label>
                     <select value={form.patient_relation} onChange={(e) => update("patient_relation", e.target.value)} required={isEscortDuty} disabled={locked}>
                       <option value="">Choose</option>
-                      {["Self", "Spouse", "Father", "Mother", "Son", "Daughter", "Dependent", "Other"].map((relation) => (
+                      {["Father", "Mother", "Son", "Daughter", "Sister", "Spouse", "Employee"].map((relation) => (
                         <option key={relation} value={relation}>{relation}</option>
                       ))}
                     </select>
@@ -637,12 +635,10 @@ export default function EmployeeForm() {
                       <option value="No">No</option>
                     </select>
                   </div>
-                  {form.leave_availed === "Yes" && (
-                    <div>
-                      <label>If any leaves availed in between write the start date (dd.mm.yyyy) and end date (dd.mm.yyyy)</label>
-                      <input value={form.leave_details} onChange={(e) => update("leave_details", e.target.value)} disabled={locked} placeholder="Example: 10.06.2026 to 12.06.2026" />
-                    </div>
-                  )}
+                  <div>
+                    <label>If any leaves availed in between write the start date (dd.mm.yyyy) and end date (dd.mm.yyyy)</label>
+                    <input value={form.leave_details} onChange={(e) => update("leave_details", e.target.value)} disabled={locked} placeholder="Example: 10.06.2026 to 12.06.2026" />
+                  </div>
                 </div>
               </div>
             )}
@@ -697,6 +693,7 @@ export default function EmployeeForm() {
     </main>
   );
 }
+
 
 
 
