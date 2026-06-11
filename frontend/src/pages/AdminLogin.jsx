@@ -31,6 +31,22 @@ export default function AdminLogin() {
         password,
       });
 
+      if (res.data.user.role === "department") {
+        localStorage.setItem("tour_employee_token", res.data.token);
+        localStorage.setItem("tour_employee", JSON.stringify({
+          id: null,
+          user_id: res.data.user.user_id,
+          name: "",
+          email: "",
+          designation: "",
+          grade: "",
+          department: res.data.user.department,
+          access_type: "department",
+        }));
+        navigate("/form");
+        return;
+      }
+
       localStorage.setItem("tour_admin_token", res.data.token);
       localStorage.setItem("tour_admin", JSON.stringify(res.data.user));
       navigate("/admin/dashboard");
@@ -53,7 +69,6 @@ export default function AdminLogin() {
           <p>Review and approve submitted tour program reports.</p>
           <div className="login-switch" aria-label="Login type">
             <button type="button" onClick={() => navigate("/")}><span className="ui-icon" aria-hidden="true">E</span> Employee</button>
-            <button type="button" onClick={() => navigate("/", { state: { accessType: "department" } })}><span className="ui-icon" aria-hidden="true">D</span> Department</button>
             <button className="active" type="button"><span className="ui-icon" aria-hidden="true">U</span> User</button>
           </div>
         </div>

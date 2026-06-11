@@ -11,7 +11,7 @@ exports.login = (req, res) => {
     return res.status(400).json({ message: "User ID must be 4-20 letters/numbers." });
   }
 
-  db.query("SELECT * FROM users WHERE user_id = ? AND role = 'admin' AND status = 'active'", [user_id], (err, rows) => {
+  db.query("SELECT * FROM users WHERE user_id = ? AND status = 'active'", [user_id], (err, rows) => {
     if (err) return res.status(500).json({ message: "Login failed." });
     if (rows.length === 0) return res.status(401).json({ message: "Invalid credentials." });
 
@@ -22,13 +22,32 @@ exports.login = (req, res) => {
 
     if (!valid) return res.status(401).json({ message: "Invalid credentials." });
 
+    if (!["admin", "department"].includes(user.role)) {
+      return res.status(403).json({ message: "This user role is not allowed." });
+    }
+
+    const tokenRole = user.role === "department" ? "employee" : "admin";
     const token = jwt.sign(
-      { id: user.id, user_id: user.user_id, role: "admin" },
+      {
+        id: user.role === "department" ? null : user.id,
+        user_id: user.user_id,
+        role: tokenRole,
+        access_type: user.role === "department" ? "department" : undefined,
+        department: user.department_name || undefined,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
     );
 
-    res.json({ token, user: { id: user.id, user_id: user.user_id, role: user.role } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        user_id: user.user_id,
+        role: user.role,
+        department: user.department_name,
+      },
+    });
   });
 };
 
