@@ -572,16 +572,21 @@ export default function EmployeeForm() {
                       <option value="No">No</option>
                     </select>
                   </div>
-                  <div className="grid-note">
-                    If any leaves availed in between write the start date and end date.
-                  </div>                  <div>
-                    <label>Leave Start Date</label>
-                    <input type="date" value={form.leave_start_date} onChange={(e) => update("leave_start_date", e.target.value)} disabled={locked} />
-                  </div>
-                  <div>
-                    <label>Leave End Date</label>
-                    <input type="date" value={form.leave_end_date} onChange={(e) => update("leave_end_date", e.target.value)} disabled={locked} />
-                  </div>
+                  {form.leave_availed === "Yes" && (
+                    <>
+                      <div className="grid-note">
+                        If any leaves availed in between write the start date and end date.
+                      </div>
+                      <div>
+                        <label>Leave Start Date</label>
+                        <input type="date" value={form.leave_start_date} onChange={(e) => update("leave_start_date", e.target.value)} disabled={locked} />
+                      </div>
+                      <div>
+                        <label>Leave End Date</label>
+                        <input type="date" value={form.leave_end_date} onChange={(e) => update("leave_end_date", e.target.value)} disabled={locked} />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -666,16 +671,21 @@ export default function EmployeeForm() {
                       <option value="No">No</option>
                     </select>
                   </div>
-                  <div className="grid-note">
-                    If any leaves availed in between write the start date and end date.
-                  </div>                  <div>
-                    <label>Leave Start Date</label>
-                    <input type="date" value={form.leave_start_date} onChange={(e) => update("leave_start_date", e.target.value)} disabled={locked} />
-                  </div>
-                  <div>
-                    <label>Leave End Date</label>
-                    <input type="date" value={form.leave_end_date} onChange={(e) => update("leave_end_date", e.target.value)} disabled={locked} />
-                  </div>
+                  {form.leave_availed === "Yes" && (
+                    <>
+                      <div className="grid-note">
+                        If any leaves availed in between write the start date and end date.
+                      </div>
+                      <div>
+                        <label>Leave Start Date</label>
+                        <input type="date" value={form.leave_start_date} onChange={(e) => update("leave_start_date", e.target.value)} disabled={locked} />
+                      </div>
+                      <div>
+                        <label>Leave End Date</label>
+                        <input type="date" value={form.leave_end_date} onChange={(e) => update("leave_end_date", e.target.value)} disabled={locked} />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
