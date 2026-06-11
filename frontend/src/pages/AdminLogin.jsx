@@ -53,6 +53,7 @@ export default function AdminLogin() {
           <p>Review and approve submitted tour program reports.</p>
           <div className="login-switch" aria-label="Login type">
             <button type="button" onClick={() => navigate("/")}><span className="ui-icon" aria-hidden="true">E</span> Employee</button>
+            <button type="button" onClick={() => navigate("/", { state: { accessType: "department" } })}><span className="ui-icon" aria-hidden="true">D</span> Department</button>
             <button className="active" type="button"><span className="ui-icon" aria-hidden="true">U</span> User</button>
           </div>
         </div>

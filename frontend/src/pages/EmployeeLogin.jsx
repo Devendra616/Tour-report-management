@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../api";
 import Toast from "../components/Toast";
 
@@ -9,6 +9,7 @@ export default function EmployeeLogin() {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
+  const location = useLocation();
   const navigate = useNavigate();
 
   const showToast = (message, type = "success") => {
@@ -33,6 +34,13 @@ export default function EmployeeLogin() {
     }
     setForm({ ...form, [field]: value });
   };
+
+  useEffect(() => {
+    if (location.state?.accessType === "department") {
+      update("access_type", "department");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   const requestOtp = async (e) => {
     e?.preventDefault();
