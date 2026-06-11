@@ -4,7 +4,7 @@ const db = require("../config/db");
 const isEightDigitSap = (value) => /^\d{8}$/.test(String(value || ""));
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
 
-const employeePayload = (employee) => ({
+const employeePayload = (employee, accessType = "employee") => ({
   id: employee.id,
   sap_id: employee.sap_id,
   name: employee.name,
@@ -12,10 +12,11 @@ const employeePayload = (employee) => ({
   designation: employee.designation,
   grade: employee.grade,
   department: employee.department,
+  access_type: accessType,
 });
 
 exports.login = (req, res) => {
-  const { sap_id, email } = req.body;
+  const { sap_id, email, access_type } = req.body;
 
   if (!isEightDigitSap(sap_id)) {
     return res.status(400).json({ message: "SAP ID must be exactly 8 digits." });
@@ -50,7 +51,9 @@ exports.login = (req, res) => {
         { expiresIn: "8h" }
       );
 
-      res.json({ token, employee: employeePayload(employee) });
+      const accessType = access_type === "department" ? "department" : "employee";
+      res.json({ token, employee: employeePayload(employee, accessType) });
     }
   );
 };
+

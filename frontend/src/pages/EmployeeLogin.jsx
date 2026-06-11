@@ -5,7 +5,7 @@ import { API_BASE_URL } from "../api";
 import Toast from "../components/Toast";
 
 export default function EmployeeLogin() {
-  const [form, setForm] = useState({ sap_id: "", email: "" });
+  const [form, setForm] = useState({ sap_id: "", email: "", access_type: "employee" });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export default function EmployeeLogin() {
       localStorage.setItem("tour_employee", JSON.stringify(res.data.employee));
       navigate("/form");
     } catch (err) {
-      showToast(err.response?.data?.message || "Employee login failed.", "error");
+      showToast(err.response?.data?.message || "Login failed.", "error");
     } finally {
       setLoading(false);
     }
@@ -50,11 +50,12 @@ export default function EmployeeLogin() {
         <div className="header">
           <div className="brand-heading">
             <img className="brand-logo" src="/logo.svg" alt="Tour Report Management" />
-            <h1>Employee Login</h1>
+            <h1>{form.access_type === "department" ? "Department Login" : "Employee Login"}</h1>
           </div>
-          <p>Enter registered SAP ID and email to continue your tour report.</p>
+          <p>{form.access_type === "department" ? "Enter registered SAP ID and email to open a blank department form." : "Enter registered SAP ID and email to continue your tour report."}</p>
           <div className="login-switch" aria-label="Login type">
-            <button className="active" type="button"><span className="ui-icon" aria-hidden="true">E</span> Employee</button>
+            <button className={form.access_type === "employee" ? "active" : ""} type="button" onClick={() => update("access_type", "employee")}><span className="ui-icon" aria-hidden="true">E</span> Employee</button>
+            <button className={form.access_type === "department" ? "active" : ""} type="button" onClick={() => update("access_type", "department")}><span className="ui-icon" aria-hidden="true">D</span> Department</button>
             <button type="button" onClick={() => navigate("/admin")}><span className="ui-icon" aria-hidden="true">U</span> User</button>
           </div>
         </div>
@@ -81,4 +82,3 @@ export default function EmployeeLogin() {
     </main>
   );
 }
-

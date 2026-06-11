@@ -108,6 +108,7 @@ export default function EmployeeForm() {
   const isMedicalSelf = form.tour_type === "Medical(Self)";
   const isEscortDuty = form.tour_type === "Medical (Escort Duty)";
   const isMedicalTour = isMedicalSelf || isEscortDuty;
+  const isDepartmentAccess = employee?.access_type === "department";
 
   const latestEditable = useMemo(
     () => reports.find((report) => ["Draft", "Rejected"].includes(report.status)),
@@ -120,6 +121,14 @@ export default function EmployeeForm() {
   };
 
   const fillFromEmployee = (data) => {
+    if (data?.access_type === "department") {
+      setForm((current) => ({
+        ...initialForm,
+        tour_type: current.tour_type,
+      }));
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       name: data.name || "",
@@ -238,10 +247,10 @@ export default function EmployeeForm() {
   }, []);
 
   useEffect(() => {
-    if (!activeReport && latestEditable) {
+    if (!isDepartmentAccess && !activeReport && latestEditable) {
       fillFromReport(latestEditable);
     }
-  }, [latestEditable, activeReport]);
+  }, [latestEditable, activeReport, isDepartmentAccess]);
 
   const validateBeforeSubmit = () => {
     if (form.start_date && form.end_date && new Date(form.start_date) > new Date(form.end_date)) {
@@ -349,7 +358,7 @@ export default function EmployeeForm() {
               <h1>Tour Program Details</h1>
             </div>
             <p style={{ margin: "5px 0 0", color: "#64748b" }}>
-              {employee ? `${employee.name} | SAP ${employee.sap_id}` : "Employee form"}
+              {employee ? `${isDepartmentAccess ? "Department form" : employee.name} | SAP ${employee.sap_id}` : "Employee form"}
             </p>
           </div>
           <div className="actions">
@@ -387,15 +396,15 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <label>Name *</label>
-                <input className="db-field" value={form.name} onChange={(e) => update("name", e.target.value)} required disabled />
+                <input className={isDepartmentAccess ? "" : "db-field"} value={form.name} onChange={(e) => update("name", e.target.value)} required disabled={!isDepartmentAccess} />
               </div>
               <div>
                 <label>Designation *</label>
-                <input className="db-field" value={form.designation} onChange={(e) => update("designation", e.target.value)} required disabled />
+                <input className={isDepartmentAccess ? "" : "db-field"} value={form.designation} onChange={(e) => update("designation", e.target.value)} required disabled={!isDepartmentAccess} />
               </div>
               <div>
                 <label>Grade *</label>
-                <select className="db-field" value={form.grade} onChange={(e) => update("grade", e.target.value)} required disabled>
+                <select className={isDepartmentAccess ? "" : "db-field"} value={form.grade} onChange={(e) => update("grade", e.target.value)} required disabled={!isDepartmentAccess}>
                   <option value="">Choose</option>
                   {masters.grades.map((grade) => (
                     <option key={grade.id} value={grade.grade_name}>{grade.grade_name}</option>
@@ -404,7 +413,7 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <label>Department *</label>
-                <select className="db-field" value={form.department} onChange={(e) => update("department", e.target.value)} required disabled>
+                <select className={isDepartmentAccess ? "" : "db-field"} value={form.department} onChange={(e) => update("department", e.target.value)} required disabled={!isDepartmentAccess}>
                   <option value="">Choose</option>
                   {masters.departments.map((department) => (
                     <option key={department.id} value={department.department_name}>{department.department_name}</option>
