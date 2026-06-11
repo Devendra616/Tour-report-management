@@ -393,7 +393,7 @@ export default function EmployeeForm() {
             <div className="grid">
               <div>
                 <label>SAP ID</label>
-                <input className="db-field" value={employee?.sap_id || ""} disabled />
+                <input className="db-field" value={isDepartmentAccess ? "" : employee?.sap_id || ""} disabled />
               </div>
               <div>
                 <label>Name *</label>
