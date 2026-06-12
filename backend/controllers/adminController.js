@@ -5,17 +5,13 @@ const db = require("../config/db");
 const isUserId = (value) => /^[A-Za-z0-9]{4,20}$/.test(String(value || ""));
 
 exports.login = (req, res) => {
-  const { user_id, password, role } = req.body;
+  const { user_id, password } = req.body;
 
   if (!isUserId(user_id)) {
     return res.status(400).json({ message: "User ID must be 4-20 letters/numbers." });
   }
 
-  // if (!["admin", "department"].includes(role)) {
-  //   return res.status(400).json({ message: "Please select Admin or Department." });
-  // }
-
-  db.query("SELECT * FROM users WHERE user_id = ? AND  status = 'active'", [user_id], (err, rows) => {
+  db.query("SELECT * FROM users WHERE user_id = ? AND status = 'active'", [user_id], (err, rows) => {
     if (err) return res.status(500).json({ message: "Login failed." });
     if (rows.length === 0) return res.status(401).json({ message: "Invalid credentials." });
 
@@ -58,4 +54,3 @@ exports.login = (req, res) => {
 exports.verify = (req, res) => {
   res.json({ valid: true, user: req.admin });
 };
-
