@@ -11,11 +11,11 @@ exports.login = (req, res) => {
     return res.status(400).json({ message: "User ID must be 4-20 letters/numbers." });
   }
 
-  if (!["admin", "department"].includes(role)) {
-    return res.status(400).json({ message: "Please select Admin or Department." });
-  }
+  // if (!["admin", "department"].includes(role)) {
+  //   return res.status(400).json({ message: "Please select Admin or Department." });
+  // }
 
-  db.query("SELECT * FROM users WHERE user_id = ? AND role = ? AND status = 'active'", [user_id, role], (err, rows) => {
+  db.query("SELECT * FROM users WHERE user_id = ? AND  status = 'active'", [user_id], (err, rows) => {
     if (err) return res.status(500).json({ message: "Login failed." });
     if (rows.length === 0) return res.status(401).json({ message: "Invalid credentials." });
 
@@ -40,7 +40,7 @@ exports.login = (req, res) => {
         department: user.department_name || undefined,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "8h" }
+      { expiresIn: "1h" }
     );
 
     res.json({
