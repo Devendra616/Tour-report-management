@@ -6,16 +6,21 @@ const { cloudinary, hasCloudinaryConfig } = require("../config/cloudinary");
 const { createCombinedPdf } = require("./pdfBuilder");
 
 const MAX_SUPPORTING_DOCUMENTS = 3;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
+const MAX_PDF_SIZE = 3 * 1024 * 1024;
+const MAX_FILE_SIZE = MAX_PDF_SIZE;
 const UPLOAD_RELATIVE_DIR = "uploads/tour-reports";
 const uploadDir = path.join(__dirname, "..", UPLOAD_RELATIVE_DIR);
 const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
 
 const resourceTypeFor = (mimeType) => (mimeType === "application/pdf" ? "raw" : "image");
 
+const maxSizeFor = (mimeType) => (mimeType === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE);
+const fileSizeMessage = "PDF must be 3 MB or less. JPG/PNG images must be 1 MB or less.";
+
 const localFileRecord = (file, prefix) => {
   if (!allowedTypes.has(file.mimetype)) throw new Error("Only PDF, JPG, and PNG files are allowed.");
-  if (file.size > MAX_FILE_SIZE) throw new Error("Each uploaded file must be 10 MB or less.");
+  if (file.size > maxSizeFor(file.mimetype)) throw new Error(fileSizeMessage);
 
   fs.mkdirSync(uploadDir, { recursive: true });
   const ext = path.extname(file.originalname).toLowerCase() || ".bin";
@@ -53,7 +58,7 @@ const uploadBufferToCloudinary = (file, prefix) => new Promise((resolve, reject)
 const saveUploadedFile = async (file, prefix) => {
   if (!file?.buffer || !file?.originalname || !file?.mimetype) throw new Error("Invalid file upload.");
   if (!allowedTypes.has(file.mimetype)) throw new Error("Only PDF, JPG, and PNG files are allowed.");
-  if (file.size > MAX_FILE_SIZE) throw new Error("Each uploaded file must be 10 MB or less.");
+  if (file.size > maxSizeFor(file.mimetype)) throw new Error(fileSizeMessage);
 
   if (!hasCloudinaryConfig()) return localFileRecord(file, prefix);
   return uploadBufferToCloudinary(file, prefix);

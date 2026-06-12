@@ -6,6 +6,9 @@ import Toast from "../components/Toast";
 
 const officialTravelModes = ["Bus", "Train", "Flight", "Hired Vehicle", "Hired Vehicle + Flight"];
 const medicalTravelModes = ["Bus", "Hired Vehicle", "Other"];
+const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
+const MAX_PDF_SIZE = 3 * 1024 * 1024;
+const fileLimitMessage = "PDF must be 3 MB or less. JPG/PNG images must be 1 MB or less.";
 const initialForm = {
   sap_id: "",
   name: "",
@@ -261,6 +264,17 @@ export default function EmployeeForm() {
       return false;
     }
 
+    if (form.leave_availed === "Yes") {
+      if (!form.leave_start_date || !form.leave_end_date) {
+        showToast("Leave start date and leave end date are required when leaves are availed.", "error");
+        return false;
+      }
+      if (new Date(form.leave_start_date) > new Date(form.leave_end_date)) {
+        showToast("Leave end date cannot be before leave start date.", "error");
+        return false;
+      }
+    }
+
     if (form.start_date && form.end_date && new Date(form.start_date) > new Date(form.end_date)) {
       showToast("End date cannot be before start date.", "error");
       return false;
@@ -296,6 +310,31 @@ export default function EmployeeForm() {
     }
 
     return true;
+  };
+
+  const isValidFileSize = (file) => {
+    if (!file) return true;
+    const limit = file.type === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE;
+    return file.size <= limit;
+  };
+
+  const handleApprovalNote = (file) => {
+    if (file && !isValidFileSize(file)) {
+      showToast(fileLimitMessage, "error");
+      setApprovalNote(null);
+      return;
+    }
+    setApprovalNote(file || null);
+  };
+
+  const handleSupportingDocs = (files) => {
+    const selected = Array.from(files || []).slice(0, 3);
+    if (selected.some((file) => !isValidFileSize(file))) {
+      showToast(fileLimitMessage, "error");
+      setSupportingDocs([]);
+      return;
+    }
+    setSupportingDocs(selected);
   };
 
   const payload = () => {
@@ -717,13 +756,13 @@ export default function EmployeeForm() {
                 </select>
               </div>
               <div>
-                <label>Upload Approval Note * PDF/JPG/PNG</label>
+                <label>Upload Approval Note * PDF up to 3 MB / JPG, PNG up to 1 MB</label>
                 {hasExistingApprovalNote && <p style={{ marginTop: 0, color: "#64748b" }}>Existing file saved. Upload again only if replacing.</p>}
-                <input type="file" accept=".pdf,image/png,image/jpeg" onChange={(e) => setApprovalNote(e.target.files?.[0] || null)} disabled={locked} />
+                <input type="file" accept=".pdf,image/png,image/jpeg" onChange={(e) => handleApprovalNote(e.target.files?.[0] || null)} disabled={locked} />
               </div>
               <div>
-                <label>Supporting Documents PDF/JPG/PNG, max 3</label>
-                <input type="file" accept=".pdf,image/png,image/jpeg" multiple onChange={(e) => setSupportingDocs(Array.from(e.target.files || []).slice(0, 3))} disabled={locked} />
+                <label>Supporting Documents PDF up to 3 MB / JPG, PNG up to 1 MB, max 3</label>
+                <input type="file" accept=".pdf,image/png,image/jpeg" multiple onChange={(e) => handleSupportingDocs(e.target.files)} disabled={locked} />
               </div>
             </div>
           </div>
