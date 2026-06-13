@@ -89,6 +89,53 @@ npm install
 npm run dev
 ```
 
+## Docker Setup
+
+Install Docker Desktop, then check:
+
+```bash
+docker --version
+docker compose version
+```
+
+Create a local Docker environment file from the example:
+
+```bash
+copy .env.docker.example .env
+```
+
+Update `.env` with your local values. Do not commit `.env`.
+
+Start the full project:
+
+```bash
+docker compose up --build
+```
+
+Docker Compose starts:
+
+| Service | URL / Port |
+|---|---|
+| Frontend | `http://localhost:5174` |
+| Backend | `http://localhost:5001` |
+| MySQL | `localhost:3307` |
+
+The backend connects to MySQL using `DB_HOST=mysql` inside Docker. This is correct because containers communicate by service name, not by `localhost`.
+
+Stop containers:
+
+```bash
+docker compose down
+```
+
+Remove containers and database volume:
+
+```bash
+docker compose down -v
+```
+
+Use `-v` carefully because it deletes Docker MySQL data.
+
 Add an employee before testing employee OTP login:
 
 ```sql

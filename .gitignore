@@ -3,3 +3,4 @@ dist
 .env
 uploads
 *.log
+docker-compose.override.yml
