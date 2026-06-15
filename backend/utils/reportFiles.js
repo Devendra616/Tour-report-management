@@ -15,14 +15,39 @@ const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
 const maxSizeFor = (mimeType) => (mimeType === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE);
 const fileSizeMessage = "PDF must be 3 MB or less. JPG/PNG images must be 1 MB or less.";
 
+const timestampForFileName = () => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date()).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  return `${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}`;
+};
+
+const markFileCurrentTime = (absolutePath) => {
+  const now = new Date();
+  fs.utimesSync(absolutePath, now, now);
+};
+
 const localFileRecord = (file, prefix) => {
   if (!allowedTypes.has(file.mimetype)) throw new Error("Only PDF, JPG, and PNG files are allowed.");
   if (file.size > maxSizeFor(file.mimetype)) throw new Error(fileSizeMessage);
 
   fs.mkdirSync(uploadDir, { recursive: true });
   const ext = path.extname(file.originalname).toLowerCase() || ".bin";
-  const safeName = `${prefix}-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-  fs.writeFileSync(path.join(uploadDir, safeName), file.buffer);
+  const safeName = `${prefix}-${timestampForFileName()}-${Math.round(Math.random() * 1e9)}${ext}`;
+  const absolutePath = path.join(uploadDir, safeName);
+  fs.writeFileSync(absolutePath, file.buffer);
+  markFileCurrentTime(absolutePath);
 
   return {
     fileName: file.originalname,
@@ -75,7 +100,7 @@ const saveSupportFiles = (reportId, supportFiles, res, done) => {
 
 const downloadToTempFile = async (url, index) => {
   const response = await fetch(url);
-  if (!response.ok) throw new Error("Cloud file could not be downloaded for PDF merge.");
+  if (!response.ok) throw new Error("Remote file could not be downloaded for PDF merge.");
 
   const urlPath = new URL(url).pathname;
   const ext = path.extname(urlPath.split("/").pop()) || ".pdf";
@@ -94,8 +119,9 @@ const filePathForMerge = async (filePath, index) => {
 };
 
 const saveCombinedPdf = async (reportId, absoluteFiles) => {
-  const fileName = `combined-report-${reportId}-${Date.now()}.pdf`;
-  await createCombinedPdf({ files: absoluteFiles, outputDir: uploadDir, outputName: fileName });
+  const fileName = `combined-report-${reportId}-${timestampForFileName()}.pdf`;
+  const absolutePath = await createCombinedPdf({ files: absoluteFiles, outputDir: uploadDir, outputName: fileName });
+  markFileCurrentTime(absolutePath);
   return { filePath: `${UPLOAD_RELATIVE_DIR}/${fileName}`, fileName };
 };
 
