@@ -26,7 +26,7 @@ const handleUploadError = (req, res, next) => {
   reportUpload(req, res, (err) => {
     if (!err) return next();
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({ message: "PDF must be 3 MB or less. JPG/PNG images must be 1 MB or less." });
+      return res.status(400).json({ message: "PDF must be 2 MB or less. JPG/PNG images must be 1 MB or less." });
     }
     res.status(400).json({ message: err.message || "Files could not be uploaded." });
   });

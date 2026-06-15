@@ -62,7 +62,7 @@ User IDs are alphanumeric and should be 4-20 characters.
 - Allowed file types: PDF, JPG/JPEG, PNG.
 - Approval note: 1 file required for submission.
 - Supporting documents: up to 3 files.
-- PDF max size: 3 MB.
+- PDF max size: 2 MB.
 - JPG/PNG max size: 1 MB.
 - Uploaded files and merged PDFs are stored on the backend server under `uploads/tour-reports`.
 - Docker keeps uploaded files in the `tour_report_uploads` volume so files remain available after container restart.

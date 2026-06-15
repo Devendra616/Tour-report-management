@@ -6,14 +6,14 @@ const { createCombinedPdf, detectFileKind } = require("./pdfBuilder");
 
 const MAX_SUPPORTING_DOCUMENTS = 3;
 const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
-const MAX_PDF_SIZE = 3 * 1024 * 1024;
+const MAX_PDF_SIZE = 2 * 1024 * 1024;
 const MAX_FILE_SIZE = MAX_PDF_SIZE;
 const UPLOAD_RELATIVE_DIR = "uploads/tour-reports";
 const uploadDir = path.join(__dirname, "..", UPLOAD_RELATIVE_DIR);
 const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
 
 const maxSizeFor = (mimeType) => (mimeType === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE);
-const fileSizeMessage = "PDF must be 3 MB or less. JPG/PNG images must be 1 MB or less.";
+const fileSizeMessage = "PDF must be 2 MB or less. JPG/PNG images must be 1 MB or less.";
 
 const expectedKindFor = (mimeType) => {
   if (mimeType === "application/pdf") return "pdf";

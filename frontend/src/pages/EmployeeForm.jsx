@@ -7,8 +7,8 @@ import Toast from "../components/Toast";
 const officialTravelModes = ["Bus", "Train", "Flight", "Hired Vehicle", "Hired Vehicle + Flight"];
 const medicalTravelModes = ["Bus", "Hired Vehicle", "Other"];
 const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
-const MAX_PDF_SIZE = 3 * 1024 * 1024;
-const fileLimitMessage = "PDF must be 3 MB or less. JPG/PNG images must be 1 MB or less.";
+const MAX_PDF_SIZE = 2 * 1024 * 1024;
+const fileLimitMessage = "PDF must be 2 MB or less. JPG/PNG images must be 1 MB or less.";
 const initialForm = {
   sap_id: "",
   name: "",
@@ -756,12 +756,12 @@ export default function EmployeeForm() {
                 </select>
               </div>
               <div>
-                <label>Upload Approval Note * PDF up to 3 MB / JPG, PNG up to 1 MB</label>
+                <label>Upload Approval Note * PDF up to 2 MB / JPG, PNG up to 1 MB</label>
                 {hasExistingApprovalNote && <p style={{ marginTop: 0, color: "#64748b" }}>Existing file saved. Upload again only if replacing.</p>}
                 <input type="file" accept=".pdf,image/png,image/jpeg" onChange={(e) => handleApprovalNote(e.target.files?.[0] || null)} disabled={locked} />
               </div>
               <div>
-                <label>Supporting Documents PDF up to 3 MB / JPG, PNG up to 1 MB, max 3</label>
+                <label>Supporting Documents PDF up to 2 MB / JPG, PNG up to 1 MB, max 3</label>
                 <input type="file" accept=".pdf,image/png,image/jpeg" multiple onChange={(e) => handleSupportingDocs(e.target.files)} disabled={locked} />
               </div>
             </div>
