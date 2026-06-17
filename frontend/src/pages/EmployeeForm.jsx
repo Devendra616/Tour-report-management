@@ -12,9 +12,20 @@ const REPORTS_PAGE_SIZE = 5;
 const fileLimitMessage = "PDF must be 2 MB or less. JPG/PNG images must be 1 MB or less.";
 const alphabeticSpaceRegex = /^[A-Za-z ]+$/;
 const alphanumericSpaceRegex = /^[A-Za-z0-9 ]+$/;
+const reportStatusPriority = { Pending: 0, Rejected: 1, Draft: 2, Approved: 3 };
 
 const onlyAlphabeticSpaces = (value) => value.replace(/[^A-Za-z ]/g, "");
 const onlyAlphanumericSpaces = (value) => value.replace(/[^A-Za-z0-9 ]/g, "");
+
+const reportDisplayTitle = (report) => {
+  const detail = report.destination || report.referred_hospital_name || report.purpose || report.tour_type;
+  if (detail) return detail;
+  if (report.status === "Draft") return "Draft report";
+  if (report.status === "Pending") return "Pending approval";
+  if (report.status === "Rejected") return "Rejected report";
+  if (report.status === "Approved") return "Approved report";
+  return "Report";
+};
 
 const initialForm = {
   sap_id: "",
@@ -115,19 +126,27 @@ export default function EmployeeForm() {
   const locked = activeReport?.status === "Approved" || activeReport?.status === "Pending";
   const canSubmit = !activeReport || ["Draft", "Rejected"].includes(activeReport.status);
   const hasExistingApprovalNote = Boolean(activeReport?.approval_note_path);
-  const activeOpenReport = reports.find((report) => ["Draft", "Pending", "Rejected"].includes(report.status));
   const isOfficial = form.tour_type === "Official";
   const isMedicalSelf = form.tour_type === "Medical(Self)";
   const isEscortDuty = form.tour_type === "Medical (Escort Duty)";
   const isMedicalTour = isMedicalSelf || isEscortDuty;
   const isDepartmentAccess = employee?.access_type === "department";
-  const reportsTotalPages = Math.max(1, Math.ceil(reports.length / REPORTS_PAGE_SIZE));
+  const sortedReports = useMemo(
+    () => [...reports].sort((a, b) => {
+      const priorityDiff = (reportStatusPriority[a.status] ?? 99) - (reportStatusPriority[b.status] ?? 99);
+      if (priorityDiff !== 0) return priorityDiff;
+      return Number(b.id || 0) - Number(a.id || 0);
+    }),
+    [reports]
+  );
+  const activeOpenReport = sortedReports.find((report) => ["Pending", "Rejected", "Draft"].includes(report.status));
+  const reportsTotalPages = Math.max(1, Math.ceil(sortedReports.length / REPORTS_PAGE_SIZE));
   const reportsPageStart = (reportsPage - 1) * REPORTS_PAGE_SIZE;
-  const visibleReports = reports.slice(reportsPageStart, reportsPageStart + REPORTS_PAGE_SIZE);
+  const visibleReports = sortedReports.slice(reportsPageStart, reportsPageStart + REPORTS_PAGE_SIZE);
 
   const latestEditable = useMemo(
-    () => reports.find((report) => ["Draft", "Rejected"].includes(report.status)),
-    [reports]
+    () => sortedReports.find((report) => ["Rejected", "Draft"].includes(report.status)),
+    [sortedReports]
   );
 
   const showToast = (message, type = "success") => {
@@ -278,8 +297,8 @@ export default function EmployeeForm() {
   }, [latestEditable, activeReport, isDepartmentAccess]);
 
   useEffect(() => {
-    setReportsPage((page) => Math.min(page, Math.max(1, Math.ceil(reports.length / REPORTS_PAGE_SIZE))));
-  }, [reports.length]);
+    setReportsPage((page) => Math.min(page, Math.max(1, Math.ceil(sortedReports.length / REPORTS_PAGE_SIZE))));
+  }, [sortedReports.length]);
 
   const goToReportsPage = (page) => {
     setReportsPage(Math.min(Math.max(page, 1), reportsTotalPages));
@@ -820,21 +839,21 @@ export default function EmployeeForm() {
 
         <div className="card" style={{ marginTop: 14 }}>
           <h3 style={{ marginTop: 0 }}>My Reports</h3>
-          {reports.length === 0 ? (
+          {sortedReports.length === 0 ? (
             <p style={{ color: "#64748b" }}>No reports yet.</p>
           ) : (
             <>
               <div className="mini-list">
                 {visibleReports.map((report) => (
                   <button className="mini-item" key={report.id} type="button" onClick={() => fillFromReport(report)}>
-                    <span>{report.destination || "Draft report"}</span>
+                    <span>{reportDisplayTitle(report)}</span>
                     <span className={`badge ${report.status}`}>{report.status}</span>
                   </button>
                 ))}
               </div>
               <div className="pagination-bar">
                 <span>
-                  Showing {reportsPageStart + 1}-{Math.min(reportsPageStart + REPORTS_PAGE_SIZE, reports.length)} of {reports.length}
+                  Showing {reportsPageStart + 1}-{Math.min(reportsPageStart + REPORTS_PAGE_SIZE, sortedReports.length)} of {sortedReports.length}
                 </span>
                 <div className="pagination-actions">
                   <button className="btn btn-muted" type="button" onClick={() => goToReportsPage(reportsPage - 1)} disabled={reportsPage === 1}>
