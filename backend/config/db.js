@@ -12,14 +12,11 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  timezone: 'local',
+  dateStrings: true
 };
 
-console.log("DB config", {
-  host: dbConfig.host,
-  port: dbConfig.port,
-  user: dbConfig.user,
-  database: dbConfig.database,
-});
+
 
 const db = mysql.createPool(dbConfig);
 

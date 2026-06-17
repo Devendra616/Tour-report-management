@@ -3,6 +3,8 @@ const { emailShell, sendMail } = require("../utils/mailer");
 const {
   MAX_SUPPORTING_DOCUMENTS,
   attachSupportDocs,
+  deleteRejectedReportFiles,
+  finalizeApprovedReportFiles,
   generateCombinedReportPdf,
   resolveReportFile,
   saveUploadedFile,
@@ -170,6 +172,7 @@ const loadOrCreateReport = (req, res, status, employee, approvalFile, supportFil
     db.query(`SELECT * FROM tour_reports WHERE id = ? AND ${ownerSql}`, [req.params.id, ownerValue], (err, rows) => {
       if (err) return res.status(500).json({ message: "Report could not be loaded." });
       if (rows.length === 0) return res.status(404).json({ message: "Report not found." });
+    
       saveExistingReport({ req, res, status, employee, existingReport: rows[0], approvalFile, supportFiles });
     });
     return;
@@ -200,8 +203,14 @@ const loadOrCreateReport = (req, res, status, employee, approvalFile, supportFil
 const saveEmployeeReport = async (req, res, status) => {
   const approvalNote = req.files?.approval_note?.[0] || null;
   const supportingDocuments = req.files?.supporting_documents || [];
+
+  console.log("---Before normalalization",req.body.start_time)
+  console.log("---Before normalalization",req.body.end_time)
   req.body.start_time = normalizeTime(req.body.start_time, req.body.start_period) || req.body.start_time;
   req.body.end_time = normalizeTime(req.body.end_time, req.body.end_period) || req.body.end_time;
+  console.log("---After normalalization",req.body.start_time)
+  console.log("---After normalalization",req.body.end_time)
+
 
   if (supportingDocuments.length > MAX_SUPPORTING_DOCUMENTS) {
     return res.status(400).json({ message: `Only ${MAX_SUPPORTING_DOCUMENTS} supporting documents are allowed.` });
@@ -230,7 +239,10 @@ exports.getEmployeeReports = (req, res) => {
     : "SELECT * FROM tour_reports WHERE sap_id = ? ORDER BY created_at DESC, id DESC";
   const params = [isDepartmentAccess(req.employee) ? req.employee.department : req.employee.sap_id];
 
+  console.log("BEFORE DB")
   db.query(sql, params, (err, reports) => {
+    
+    console.dir(reports)
     if (err) return res.status(500).json({ message: "Reports could not be loaded." });
     attachSupportDocs(reports, res);
   });
@@ -294,12 +306,28 @@ exports.updateStatus = (req, res) => {
       if (err) return res.status(500).json({ message: "Status update failed." });
       if (result.affectedRows === 0) return res.status(400).json({ message: "Only pending reports can be updated." });
 
+      const finishStatusUpdate = () => {
+        sendStatusEmail(id, status);
+        res.json({ message: `Report ${status.toLowerCase()} successfully.` });
+      };
+
       if (status === "Approved") {
-        queueCombinedReportPdf(id);
+        finalizeApprovedReportFiles(id, (fileErr) => {
+          if (fileErr) return res.status(500).json({ message: "Report approved, but final PDF files could not be prepared." });
+          finishStatusUpdate();
+        });
+        return;
       }
 
-      sendStatusEmail(id, status);
-      res.json({ message: `Report ${status.toLowerCase()} successfully.` });
+      if (status === "Rejected") {
+        deleteRejectedReportFiles(id, (deleteErr) => {
+          if (deleteErr) return res.status(500).json({ message: "Report rejected, but submitted files could not be deleted." });
+          finishStatusUpdate();
+        });
+        return;
+      }
+
+      finishStatusUpdate();
     }
   );
 };

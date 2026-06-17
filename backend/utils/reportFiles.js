@@ -93,6 +93,7 @@ const attachSupportDocs = (reports, res) => {
       return acc;
     }, {});
 
+  
     res.json(reports.map((report) => ({
       ...report,
       supporting_documents: docsByReport[report.id] || [],
@@ -144,9 +145,11 @@ const saveCombinedPdf = async (reportId, absoluteFiles) => {
 const generateCombinedReportPdf = (reportId, done) => {
   db.query("SELECT * FROM tour_reports WHERE id = ?", [reportId], (reportErr, reports) => {
     if (reportErr || reports.length === 0) return done(reportErr || new Error("Report not found."));
+    if (reports[0].status === "Rejected") return done();
 
     db.query("SELECT * FROM tour_supporting_documents WHERE tour_report_id = ? ORDER BY id ASC", [reportId], async (docErr, docs) => {
       if (docErr) return done(docErr);
+      if (reports[0].combined_pdf_path && docs.length === 0) return done();
 
       const tempFiles = [];
       try {
@@ -157,9 +160,13 @@ const generateCombinedReportPdf = (reportId, done) => {
 
         const combined = await saveCombinedPdf(reportId, absoluteFiles);
         db.query(
-          "UPDATE tour_reports SET combined_pdf_path = ?, combined_pdf_name = ? WHERE id = ?",
+          "UPDATE tour_reports SET combined_pdf_path = ?, combined_pdf_name = ? WHERE id = ? AND status <> 'Rejected'",
           [combined.filePath, combined.fileName, reportId],
-          (updateErr) => done(updateErr)
+          (updateErr, result) => {
+            if (!updateErr && result.affectedRows === 0) deleteLocalReportFile(combined.filePath);
+            if (updateErr || result.affectedRows === 0) return done(updateErr);
+            deleteCombinedSourceFiles(reportId, reports[0], docs, done);
+          }
         );
       } catch (err) {
         done(err);
@@ -178,11 +185,116 @@ const resolveReportFile = (filePath) => {
   return fs.existsSync(absolutePath) ? { type: "local", value: absolutePath } : null;
 };
 
+const deleteLocalReportFile = (filePath) => {
+  if (!filePath || /^https?:\/\//i.test(filePath) || !filePath.startsWith(`${UPLOAD_RELATIVE_DIR}/`)) return;
+
+  const absoluteUploadDir = path.resolve(uploadDir);
+  const absolutePath = path.resolve(__dirname, "..", filePath);
+  if (!absolutePath.startsWith(`${absoluteUploadDir}${path.sep}`)) return;
+
+  fs.rmSync(absolutePath, { force: true });
+};
+
+const deleteCombinedSourceFiles = (reportId, report, docs, done) => {
+  try {
+    deleteLocalReportFile(report.approval_note_path);
+    docs.forEach((doc) => deleteLocalReportFile(doc.file_path));
+  } catch (err) {
+    return done(err);
+  }
+
+  db.query("DELETE FROM tour_supporting_documents WHERE tour_report_id = ?", [reportId], (deleteErr) => {
+    if (deleteErr) return done(deleteErr);
+
+    db.query(
+      "UPDATE tour_reports SET approval_note_path = NULL, approval_note_name = NULL WHERE id = ?",
+      [reportId],
+      done
+    );
+  });
+};
+
+const deleteApprovedReportSourceFiles = (reportId, done) => {
+  db.query("SELECT approval_note_path FROM tour_reports WHERE id = ?", [reportId], (reportErr, reports) => {
+    if (reportErr) return done(reportErr);
+    if (reports.length === 0) return done();
+
+    db.query("SELECT file_path FROM tour_supporting_documents WHERE tour_report_id = ?", [reportId], (docErr, docs) => {
+      if (docErr) return done(docErr);
+
+      try {
+        deleteLocalReportFile(reports[0].approval_note_path);
+        docs.forEach((doc) => deleteLocalReportFile(doc.file_path));
+      } catch (err) {
+        return done(err);
+      }
+
+      db.query("DELETE FROM tour_supporting_documents WHERE tour_report_id = ?", [reportId], (deleteErr) => {
+        if (deleteErr) return done(deleteErr);
+
+        db.query(
+          "UPDATE tour_reports SET approval_note_path = NULL, approval_note_name = NULL WHERE id = ?",
+          [reportId],
+          done
+        );
+      });
+    });
+  });
+};
+
+const finalizeApprovedReportFiles = (reportId, done) => {
+  generateCombinedReportPdf(reportId, (combineErr) => {
+    if (combineErr) return done(combineErr);
+
+    db.query("SELECT combined_pdf_path FROM tour_reports WHERE id = ?", [reportId], (reportErr, reports) => {
+      if (reportErr) return done(reportErr);
+      if (!reports[0]?.combined_pdf_path) return done(new Error("Combined PDF could not be generated."));
+
+      deleteApprovedReportSourceFiles(reportId, done);
+    });
+  });
+};
+
+const deleteRejectedReportFiles = (reportId, done) => {
+  db.query("SELECT approval_note_path, combined_pdf_path FROM tour_reports WHERE id = ?", [reportId], (reportErr, reports) => {
+    if (reportErr) return done(reportErr);
+    if (reports.length === 0) return done();
+
+    db.query("SELECT file_path FROM tour_supporting_documents WHERE tour_report_id = ?", [reportId], (docErr, docs) => {
+      if (docErr) return done(docErr);
+
+      const filePaths = [
+        reports[0].approval_note_path,
+        reports[0].combined_pdf_path,
+        ...docs.map((doc) => doc.file_path),
+      ];
+
+      try {
+        filePaths.forEach(deleteLocalReportFile);
+      } catch (err) {
+        return done(err);
+      }
+
+      db.query("DELETE FROM tour_supporting_documents WHERE tour_report_id = ?", [reportId], (deleteErr) => {
+        if (deleteErr) return done(deleteErr);
+
+        db.query(
+          "UPDATE tour_reports SET approval_note_path = NULL, approval_note_name = NULL, combined_pdf_path = NULL, combined_pdf_name = NULL WHERE id = ?",
+          [reportId],
+          done
+        );
+      });
+    });
+  });
+};
+
 module.exports = {
   MAX_FILE_SIZE,
   MAX_SUPPORTING_DOCUMENTS,
   allowedTypes,
   attachSupportDocs,
+  deleteRejectedReportFiles,
+  finalizeApprovedReportFiles,
   generateCombinedReportPdf,
   resolveReportFile,
   saveSupportFiles,
