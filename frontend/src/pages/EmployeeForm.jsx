@@ -16,13 +16,17 @@ const reportStatusPriority = { Pending: 0, Rejected: 1, Draft: 2, Approved: 3 };
 const onlyAlphabeticSpaces = (value) => value.replace(/[^A-Za-z ]/g, "");
 const onlyAlphanumericSpaces = (value) => value.replace(/[^A-Za-z0-9 ]/g, "");
 
+const formatDate = (value) => {
+  if (!value) return "-";
+  return new Date(value).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const reportDisplayTitle = (report) => {
-  const detail = report.destination || report.referred_hospital_name || report.purpose || report.tour_type;
-  if (detail) return detail;
-  if (report.status === "Draft") return "Draft report";
-  if (report.status === "Pending") return "Pending approval";
-  if (report.status === "Rejected") return "Rejected report";
-  return "Report";
+  return `${report.sap_id || "-"} - ${report.destination || "-"} - ${formatDate(report.start_date)}`;
 };
 
 const initialForm = {
