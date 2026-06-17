@@ -33,6 +33,9 @@ const normalizeTime = (value, period = "") => {
 };
 
 const findMissing = (fields) => fields.find(([, value]) => !String(value || "").trim());
+const alphabeticSpaceRegex = /^[A-Za-z ]+$/;
+const alphanumericSpaceRegex = /^[A-Za-z0-9 ]+$/;
+const hasValue = (value) => Boolean(String(value || "").trim());
 
 const validateSubmittedReport = (body, hasApprovalNote) => {
   const isOfficial = body.tour_type === "Official";
@@ -59,6 +62,10 @@ const validateSubmittedReport = (body, hasApprovalNote) => {
   const missingBase = findMissing(baseRequiredFields);
   if (missingBase) return `${missingBase[0]} is required.`;
 
+  if (hasValue(body.name) && !alphabeticSpaceRegex.test(String(body.name).trim())) {
+    return "Employee name must contain only alphabets and spaces.";
+  }
+
   if (isOfficial) {
     const missingOfficial = findMissing([
       ["Purpose", body.purpose],
@@ -74,6 +81,9 @@ const validateSubmittedReport = (body, hasApprovalNote) => {
       ["Reference letter date", body.medical_reference_date],
     ]);
     if (missingMedical) return `${missingMedical[0]} is required.`;
+    if (!alphanumericSpaceRegex.test(String(body.referred_hospital_name).trim())) {
+      return "Hospital name must contain only letters, numbers, and spaces.";
+    }
   }
 
   if (isMedicalSelf) {
@@ -87,6 +97,9 @@ const validateSubmittedReport = (body, hasApprovalNote) => {
       ["Patient relation", body.patient_relation],
     ]);
     if (missingEscort) return `${missingEscort[0]} is required.`;
+    if (!alphabeticSpaceRegex.test(String(body.patient_name).trim())) {
+      return "Patient name must contain only alphabets and spaces.";
+    }
     if (body.escort_employee_sap_id && !/^\d{8}$/.test(String(body.escort_employee_sap_id))) {
       return "Escort employee SAP ID must be exactly 8 digits.";
     }

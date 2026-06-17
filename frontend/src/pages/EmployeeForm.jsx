@@ -9,6 +9,12 @@ const medicalTravelModes = ["Bus", "Hired Vehicle", "Other"];
 const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
 const MAX_PDF_SIZE = 2 * 1024 * 1024;
 const fileLimitMessage = "PDF must be 2 MB or less. JPG/PNG images must be 1 MB or less.";
+const alphabeticSpaceRegex = /^[A-Za-z ]+$/;
+const alphanumericSpaceRegex = /^[A-Za-z0-9 ]+$/;
+
+const onlyAlphabeticSpaces = (value) => value.replace(/[^A-Za-z ]/g, "");
+const onlyAlphanumericSpaces = (value) => value.replace(/[^A-Za-z0-9 ]/g, "");
+
 const initialForm = {
   sap_id: "",
   name: "",
@@ -182,6 +188,14 @@ export default function EmployeeForm() {
   };
 
   const update = (field, value) => {
+    if (field === "name" || field === "patient_name") {
+      value = onlyAlphabeticSpaces(value);
+    }
+
+    if (field === "referred_hospital_name") {
+      value = onlyAlphanumericSpaces(value);
+    }
+
     if (field === "tour_type") {
       setForm((current) => ({
         ...current,
@@ -261,6 +275,21 @@ export default function EmployeeForm() {
   const validateBeforeSubmit = () => {
     if (isDepartmentAccess && !/^\d{8}$/.test(form.sap_id)) {
       showToast("SAP ID must be exactly 8 digits.", "error");
+      return false;
+    }
+
+    if (form.name.trim() && !alphabeticSpaceRegex.test(form.name.trim())) {
+      showToast("Employee name must contain only alphabets and spaces.", "error");
+      return false;
+    }
+
+    if (isEscortDuty && form.patient_name.trim() && !alphabeticSpaceRegex.test(form.patient_name.trim())) {
+      showToast("Patient name must contain only alphabets and spaces.", "error");
+      return false;
+    }
+
+    if (isMedicalTour && form.referred_hospital_name.trim() && !alphanumericSpaceRegex.test(form.referred_hospital_name.trim())) {
+      showToast("Hospital name must contain only letters, numbers, and spaces.", "error");
       return false;
     }
 
@@ -458,7 +487,7 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <label>Name *</label>
-                <input className={isDepartmentAccess ? "" : "db-field"} value={form.name} onChange={(e) => update("name", e.target.value)} required disabled={!isDepartmentAccess} />
+                <input className={isDepartmentAccess ? "" : "db-field"} value={form.name} onChange={(e) => update("name", e.target.value)} pattern="[A-Za-z ]+" title="Only alphabets and spaces are allowed." required disabled={!isDepartmentAccess} />
               </div>
               <div>
                 <label>Designation *</label>
@@ -566,7 +595,7 @@ export default function EmployeeForm() {
                 <div className="grid">
                   <div>
                     <label>Referred Hospital Name *</label>
-                    <input value={form.referred_hospital_name} onChange={(e) => update("referred_hospital_name", e.target.value)} required={isMedicalSelf} disabled={locked} />
+                    <input value={form.referred_hospital_name} onChange={(e) => update("referred_hospital_name", e.target.value)} pattern="[A-Za-z0-9 ]+" title="Only letters, numbers, and spaces are allowed." required={isMedicalSelf} disabled={locked} />
                   </div>
                   <div>
                     <label>Reference letter no. *</label>
@@ -652,7 +681,7 @@ export default function EmployeeForm() {
                 <div className="grid">
                   <div>
                     <label>Name of Patient *</label>
-                    <input value={form.patient_name} onChange={(e) => update("patient_name", e.target.value)} required={isEscortDuty} disabled={locked} />
+                    <input value={form.patient_name} onChange={(e) => update("patient_name", e.target.value)} pattern="[A-Za-z ]+" title="Only alphabets and spaces are allowed." required={isEscortDuty} disabled={locked} />
                   </div>
                   <div>
                     <label>Relation with the patient *</label>
@@ -669,7 +698,7 @@ export default function EmployeeForm() {
                   </div>
                   <div>
                     <label>Referred Hospital Name *</label>
-                    <input value={form.referred_hospital_name} onChange={(e) => update("referred_hospital_name", e.target.value)} required={isEscortDuty} disabled={locked} />
+                    <input value={form.referred_hospital_name} onChange={(e) => update("referred_hospital_name", e.target.value)} pattern="[A-Za-z0-9 ]+" title="Only letters, numbers, and spaces are allowed." required={isEscortDuty} disabled={locked} />
                   </div>
                   <div>
                     <label>Reference letter no. *</label>
