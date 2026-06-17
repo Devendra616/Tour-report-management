@@ -212,9 +212,10 @@ textarea:focus {
 }
 
 .brand-logo {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 62px;
+  height: 54px;
+  flex: 0 0 62px;
+  object-fit: contain;
 }
 
 .brand-heading h1 {

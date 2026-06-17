@@ -312,7 +312,7 @@ export default function AdminDashboard() {
         <div className="topbar">
           <div>
             <div className="brand-heading">
-              <img className="brand-logo" src="/logo.svg" alt="Tour Report Management" />
+              <img className="brand-logo" src="/nmdc.png" alt="NMDC" />
               <h1>Admin Dashboard</h1>
             </div>
             <p style={{ margin: "5px 0 0", color: "#64748b" }}>Review tour program reports</p>
