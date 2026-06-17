@@ -112,9 +112,14 @@ export default function EmployeeReports() {
     [reports]
   );
 
+  const approvedReports = useMemo(
+    () => sortedReports.filter((report) => report.status === "Approved"),
+    [sortedReports]
+  );
+
   const filteredReports = useMemo(
-    () => sortedReports.filter((report) => activeFilter === "all" || report.tour_type === activeFilter),
-    [activeFilter, sortedReports]
+    () => approvedReports.filter((report) => activeFilter === "all" || report.tour_type === activeFilter),
+    [activeFilter, approvedReports]
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredReports.length / REPORTS_PAGE_SIZE));
@@ -141,7 +146,7 @@ export default function EmployeeReports() {
           <div>
             <div className="brand-heading">
               <img className="brand-logo" src="/nmdc.png" alt="NMDC" />
-              <h1>Reports</h1>
+              <h1>Approved Reports</h1>
             </div>
             <p style={{ margin: "5px 0 0", color: "#64748b" }}>
               {employee ? (isDepartmentAccess ? `Department Login | User ID ${employee.user_id}` : `${employee.name} | SAP ${employee.sap_id}`) : "Report list"}

@@ -16,6 +16,15 @@ const reportStatusPriority = { Pending: 0, Rejected: 1, Draft: 2, Approved: 3 };
 const onlyAlphabeticSpaces = (value) => value.replace(/[^A-Za-z ]/g, "");
 const onlyAlphanumericSpaces = (value) => value.replace(/[^A-Za-z0-9 ]/g, "");
 
+const reportDisplayTitle = (report) => {
+  const detail = report.destination || report.referred_hospital_name || report.purpose || report.tour_type;
+  if (detail) return detail;
+  if (report.status === "Draft") return "Draft report";
+  if (report.status === "Pending") return "Pending approval";
+  if (report.status === "Rejected") return "Rejected report";
+  return "Report";
+};
+
 const initialForm = {
   sap_id: "",
   name: "",
@@ -128,6 +137,7 @@ export default function EmployeeForm() {
     [reports]
   );
   const activeOpenReport = sortedReports.find((report) => ["Pending", "Rejected", "Draft"].includes(report.status));
+  const openReports = sortedReports.filter((report) => ["Pending", "Rejected", "Draft"].includes(report.status));
 
   const latestEditable = useMemo(
     () => sortedReports.find((report) => ["Rejected", "Draft"].includes(report.status)),
@@ -814,6 +824,22 @@ export default function EmployeeForm() {
             </button>
           </div>
         </form>
+
+        <div className="card" style={{ marginTop: 14 }}>
+          <h3 style={{ marginTop: 0 }}>Open Reports</h3>
+          {openReports.length === 0 ? (
+            <p style={{ color: "#64748b" }}>No draft, pending, or rejected reports.</p>
+          ) : (
+            <div className="mini-list">
+              {openReports.map((report) => (
+                <button className="mini-item" key={report.id} type="button" onClick={() => fillFromReport(report)}>
+                  <span>{reportDisplayTitle(report)}</span>
+                  <span className={`badge ${report.status}`}>{report.status}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
