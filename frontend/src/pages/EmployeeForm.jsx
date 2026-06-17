@@ -366,7 +366,7 @@ export default function EmployeeForm() {
     }
 
     if (!approvalNote && !hasExistingApprovalNote) {
-      showToast("Approval note is required.", "error");
+      showToast("Upload approval note before submitting this draft.", "error");
       return false;
     }
 
