@@ -472,7 +472,7 @@ export default function EmployeeForm() {
             </p>
           </div>
           <div className="actions">
-            <button className="btn btn-muted" type="button" onClick={() => navigate("/reports")}>Report</button>
+            <button className="btn btn-reports" type="button" onClick={() => navigate("/reports")}>Reports</button>
             <button className="btn btn-danger" type="button" onClick={logout}><span className="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M10 17v2H5V5h5v2H7v10h3Zm4.6-1.4-1.4-1.4 2.2-2.2H10v-2h5.4l-2.2-2.2 1.4-1.4L19.4 11l-4.8 4.6Z" /></svg></span> Logout</button>
           </div>
         </div>

@@ -156,6 +156,16 @@ textarea:focus {
   color: #4338ca;
 }
 
+.btn-reports {
+  background: #172033;
+  color: #ffffff;
+  border: 1px solid #172033;
+}
+
+.btn-reports:hover {
+  background: #24324a;
+}
+
 .btn-danger {
   background: #ef4444;
   color: #ffffff;
