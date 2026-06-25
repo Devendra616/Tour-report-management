@@ -1,17 +1,17 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: tour-tracker-mysql
+    container_name: tour-details-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${DB_NAME:-tour_tracker_management}
+      MYSQL_DATABASE: ${DB_NAME:-tour_details}
       TZ: Asia/Kolkata
     command: --default-time-zone=+05:30
     expose:
       - "3306"
     volumes:
-      - /data/mysql/tour-tracker:/var/lib/mysql
+      - /data/mysql/tour-details:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./database/docker_seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
@@ -24,12 +24,12 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - tour-tracker-network
+      - tour-details-network
 
   backend:
     build:
       context: ./backend
-    container_name: tour-tracker-backend
+    container_name: tour-details-backend
     restart: unless-stopped
     depends_on:
       mysql:
@@ -42,7 +42,7 @@ services:
       DB_PORT: 3306
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      DB_NAME: ${DB_NAME:-tour_tracker_management}
+      DB_NAME: ${DB_NAME:-tour_details}
       JWT_SECRET: ${JWT_SECRET:-change_this_local_secret}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
@@ -55,9 +55,10 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      - /data/uploads/tour-tracker:/app/uploads
+      - /data/uploads/tour-details:/app/uploads
     networks:
-      - tour-tracker-network
+      - proxy-network
+      - tour-details-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5001"]
       interval: 30s
@@ -69,14 +70,16 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: /api
-    container_name: tour-tracker-frontend
+    container_name: tour-details-frontend
     restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "8080:80"
     networks:
-      - tour-tracker-network
+      - proxy-network
 
 networks:
-  tour-tracker-network:
+  proxy-network:
+    external: true
+  tour-details-network:
