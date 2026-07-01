@@ -19,6 +19,12 @@ const emptyDepartmentForm = {
   department_name: "",
   status: "active",
 };
+const emptyDepartmentUserForm = {
+  user_id: "",
+  password: "",
+  department_name: "",
+  status: "active",
+};
 
 const fileUrl = (path, mode = "preview") => {
   if (/^https?:\/\//i.test(path || "")) return path;
@@ -193,11 +199,14 @@ export default function AdminDashboard() {
   const [reports, setReports] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [departmentUsers, setDepartmentUsers] = useState([]);
   const [masterData, setMasterData] = useState({ grades: [], departments: [] });
   const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
   const [departmentForm, setDepartmentForm] = useState(emptyDepartmentForm);
+  const [departmentUserForm, setDepartmentUserForm] = useState(emptyDepartmentUserForm);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editingDepartmentId, setEditingDepartmentId] = useState(null);
+  const [editingDepartmentUserId, setEditingDepartmentUserId] = useState(null);
   const [filters, setFilters] = useState({
     year: String(currentYear),
     status: "all",
@@ -207,6 +216,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [employeeLoading, setEmployeeLoading] = useState(false);
   const [departmentLoading, setDepartmentLoading] = useState(false);
+  const [departmentUserLoading, setDepartmentUserLoading] = useState(false);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -221,6 +231,12 @@ export default function AdminDashboard() {
     : [
       ...masterData.departments,
       ...(employeeForm.department ? [{ id: "current", department_name: employeeForm.department }] : []),
+    ];
+  const departmentUserOptions = masterData.departments.some((department) => department.department_name === departmentUserForm.department_name)
+    ? masterData.departments
+    : [
+      ...masterData.departments,
+      ...(departmentUserForm.department_name ? [{ id: "current-user-dept", department_name: departmentUserForm.department_name }] : []),
     ];
 
   const showToast = (message, type = "success") => {
@@ -300,6 +316,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadDepartmentUsers = async () => {
+    try {
+      setDepartmentUserLoading(true);
+      const res = await axios.get(`${API_BASE_URL}/api/admin/department-users`, { headers: authHeaders() });
+      setDepartmentUsers(res.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("tour_admin_token");
+        navigate("/admin");
+        return;
+      }
+      showToast(err.response?.data?.message || "Department users could not be loaded.", "error");
+    } finally {
+      setDepartmentUserLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!localStorage.getItem("tour_admin_token")) {
       navigate("/admin");
@@ -309,6 +342,7 @@ export default function AdminDashboard() {
     loadMasters();
     loadEmployees();
     loadDepartments();
+    loadDepartmentUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -442,6 +476,57 @@ export default function AdminDashboard() {
     }
   };
 
+  const saveDepartmentUser = async (e) => {
+    e.preventDefault();
+    const payload = {
+      ...departmentUserForm,
+      user_id: departmentUserForm.user_id.trim(),
+      password: departmentUserForm.password,
+      department_name: departmentUserForm.department_name.trim(),
+    };
+
+    try {
+      if (editingDepartmentUserId) {
+        await axios.put(`${API_BASE_URL}/api/admin/department-users/${editingDepartmentUserId}`, payload, { headers: authHeaders() });
+        showToast("Department user updated successfully.");
+      } else {
+        await axios.post(`${API_BASE_URL}/api/admin/department-users`, payload, { headers: authHeaders() });
+        showToast("Department user added successfully.");
+      }
+      setDepartmentUserForm(emptyDepartmentUserForm);
+      setEditingDepartmentUserId(null);
+      loadDepartmentUsers();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Department user could not be saved.", "error");
+    }
+  };
+
+  const editDepartmentUser = (user) => {
+    setDepartmentUserForm({
+      user_id: user.user_id || "",
+      password: "",
+      department_name: user.department_name || "",
+      status: user.status || "active",
+    });
+    setEditingDepartmentUserId(user.id);
+    setActiveTab("departmentUsers");
+  };
+
+  const changeDepartmentUserStatus = async (user) => {
+    const nextStatus = user.status === "active" ? "inactive" : "active";
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/department-users/${user.id}/status`,
+        { status: nextStatus },
+        { headers: authHeaders() }
+      );
+      showToast(`Department user marked ${nextStatus}.`);
+      loadDepartmentUsers();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Department user status could not be changed.", "error");
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("tour_admin_token");
     localStorage.removeItem("tour_admin");
@@ -517,6 +602,7 @@ export default function AdminDashboard() {
           <button className={activeTab === "reports" ? "active" : ""} type="button" onClick={() => setActiveTab("reports")}>Reports</button>
           <button className={activeTab === "employees" ? "active" : ""} type="button" onClick={() => setActiveTab("employees")}>Employees</button>
           <button className={activeTab === "departments" ? "active" : ""} type="button" onClick={() => setActiveTab("departments")}>Departments</button>
+          <button className={activeTab === "departmentUsers" ? "active" : ""} type="button" onClick={() => setActiveTab("departmentUsers")}>Department Users</button>
         </div>
 
         {activeTab === "reports" && (
@@ -822,6 +908,113 @@ export default function AdminDashboard() {
                             onClick={() => changeDepartmentStatus(department)}
                           >
                             {department.status === "active" ? "Inactive" : "Active"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === "departmentUsers" && (
+          <>
+            <form className="card" onSubmit={saveDepartmentUser}>
+              <div className="section-head">
+                <div>
+                  <h2>{editingDepartmentUserId ? "Edit Department User" : "Add New Department User"}</h2>
+                  <p>Create and manage department login accounts.</p>
+                </div>
+                {editingDepartmentUserId && (
+                  <button
+                    className="btn btn-muted"
+                    type="button"
+                    onClick={() => {
+                      setDepartmentUserForm(emptyDepartmentUserForm);
+                      setEditingDepartmentUserId(null);
+                    }}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+              <div className="grid-3">
+                <div>
+                  <label>User ID</label>
+                  <input
+                    value={departmentUserForm.user_id}
+                    onChange={(e) => setDepartmentUserForm({ ...departmentUserForm, user_id: e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 20).toUpperCase() })}
+                    placeholder="DEPTCIT01"
+                    required
+                  />
+                </div>
+                <div>
+                  <label>{editingDepartmentUserId ? "New Password" : "Password"}</label>
+                  <input
+                    type="password"
+                    value={departmentUserForm.password}
+                    onChange={(e) => setDepartmentUserForm({ ...departmentUserForm, password: e.target.value })}
+                    placeholder={editingDepartmentUserId ? "Leave blank to keep same" : "Minimum 6 characters"}
+                    required={!editingDepartmentUserId}
+                  />
+                </div>
+                <div>
+                  <label>Department</label>
+                  <select
+                    value={departmentUserForm.department_name}
+                    onChange={(e) => setDepartmentUserForm({ ...departmentUserForm, department_name: e.target.value })}
+                    required
+                  >
+                    <option value="">Select department</option>
+                    {departmentUserOptions.map((department) => (
+                      <option key={department.id} value={department.department_name}>{department.department_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Status</label>
+                  <select value={departmentUserForm.status} onChange={(e) => setDepartmentUserForm({ ...departmentUserForm, status: e.target.value })}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div className="actions form-actions">
+                <button className="btn btn-primary" type="submit">{editingDepartmentUserId ? "Update Department User" : "Add Department User"}</button>
+              </div>
+            </form>
+
+            <div className="table-wrap">
+              <table className="compact-table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departmentUserLoading ? (
+                    <tr><td colSpan="4">Loading...</td></tr>
+                  ) : departmentUsers.length === 0 ? (
+                    <tr><td colSpan="4">No department users found.</td></tr>
+                  ) : departmentUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td><strong>{user.user_id}</strong></td>
+                      <td>{user.department_name}</td>
+                      <td><span className={`status-pill ${user.status}`}>{user.status}</span></td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="btn btn-muted" type="button" onClick={() => editDepartmentUser(user)}>Edit</button>
+                          <button
+                            className={user.status === "active" ? "btn btn-danger" : "btn btn-success"}
+                            type="button"
+                            onClick={() => changeDepartmentUserStatus(user)}
+                          >
+                            {user.status === "active" ? "Inactive" : "Active"}
                           </button>
                         </div>
                       </td>

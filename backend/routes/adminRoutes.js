@@ -1,12 +1,16 @@
 const express = require("express");
 const {
   createDepartment,
+  createDepartmentUser,
   createEmployee,
   listDepartments,
+  listDepartmentUsers,
   listEmployees,
   login,
   updateDepartment,
   updateDepartmentStatus,
+  updateDepartmentUser,
+  updateDepartmentUserStatus,
   updateEmployee,
   updateEmployeeStatus,
   verify,
@@ -25,5 +29,9 @@ router.get("/departments", verifyAdmin, listDepartments);
 router.post("/departments", verifyAdmin, createDepartment);
 router.put("/departments/:id", verifyAdmin, updateDepartment);
 router.patch("/departments/:id/status", verifyAdmin, updateDepartmentStatus);
+router.get("/department-users", verifyAdmin, listDepartmentUsers);
+router.post("/department-users", verifyAdmin, createDepartmentUser);
+router.put("/department-users/:id", verifyAdmin, updateDepartmentUser);
+router.patch("/department-users/:id/status", verifyAdmin, updateDepartmentUserStatus);
 
 module.exports = router;
